@@ -30,11 +30,18 @@ const navItems = [
   },
 ]
 
-const Sidebar = () => {
+const Sidebar = ({ isMobile, mobileOpen, onClose }) => {
   return (
-    <aside className="flex w-64 flex-col border-r border-border bg-sidebar">
+    <aside
+      className={cn(
+        'z-40 flex w-64 flex-col border-r border-border bg-sidebar transition-transform duration-200 ease-in-out',
+        isMobile ? 'fixed inset-y-0 left-0 h-full shadow-2xl' : 'relative h-screen',
+        isMobile && !mobileOpen && '-translate-x-full',
+        isMobile && mobileOpen && 'translate-x-0'
+      )}
+    >
       {/* Logo */}
-      <div className="flex h-16 items-center gap-2 border-b border-sidebar-border px-6">
+      <div className="flex h-16 items-center justify-between gap-2 border-b border-sidebar-border px-6">
         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
           <Flame className="h-5 w-5 text-primary-foreground" />
         </div>
@@ -42,6 +49,16 @@ const Sidebar = () => {
           <span className="text-sm font-semibold text-sidebar-foreground">HeatMap</span>
           <span className="text-xs text-muted-foreground">Canal 4200-135</span>
         </div>
+        {isMobile && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="ml-auto rounded-lg p-2 text-muted-foreground hover:bg-sidebar-accent"
+            aria-label="Cerrar menú"
+          >
+            ×
+          </button>
+        )}
       </div>
 
       {/* Navigation */}
@@ -56,6 +73,7 @@ const Sidebar = () => {
                 <li key={item.name}>
                   <NavLink
                     to={item.href}
+                    onClick={isMobile ? onClose : undefined}
                     className={({ isActive }) =>
                       cn(
                         'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',

@@ -90,9 +90,9 @@ const Dashboard = () => {
       </div>
 
       {/* Main Content Grid */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         {/* Heat Map Preview */}
-        <div className="lg:col-span-2">
+        <div className="xl:col-span-2">
           <HeatMapPreview />
         </div>
 
@@ -101,7 +101,7 @@ const Dashboard = () => {
       </div>
 
       {/* Charts Row */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
         {/* Trend Chart */}
         <div className="rounded-xl border border-border bg-card p-6">
           <div className="mb-4 flex items-center justify-between">

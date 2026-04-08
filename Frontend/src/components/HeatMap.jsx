@@ -32,21 +32,21 @@ const HeatMap = () => {
       const [hoveredPoint, setHoveredPoint] = useState(null)
   return (
         <div className="rounded-xl border border-border bg-card">
-      <div className="flex items-center justify-between border-b border-border p-4">
+      <div className="flex flex-col gap-3 border-b border-border p-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h3 className="font-semibold text-card-foreground">Mapa de Calor</h3>
           <p className="text-sm text-muted-foreground">Distribución geográfica de incidencias</p>
         </div>
         <Link 
           to="/mapa"
-          className="flex items-center gap-2 rounded-lg bg-secondary px-3 py-2 text-sm text-foreground hover:bg-secondary/80"
+          className="inline-flex items-center gap-2 self-start rounded-lg bg-secondary px-3 py-2 text-sm text-foreground hover:bg-secondary/80"
         >
           <Maximize2 className="h-4 w-4" />
           Ver completo
         </Link>
       </div>
 
-      <div className="relative h-80 overflow-hidden bg-secondary/30 p-4">
+      <div className="relative min-h-72 overflow-hidden bg-secondary/30 p-4 sm:h-80">
         {/* Grid lines */}
         <div className="absolute inset-4 grid grid-cols-8 grid-rows-6 gap-px opacity-20">
           {Array.from({ length: 48 }).map((_, i) => (
@@ -90,7 +90,7 @@ const HeatMap = () => {
         {/* Legend */}
         <div className="absolute bottom-4 right-4 rounded-lg border border-border bg-card/90 p-3 backdrop-blur">
           <p className="mb-2 text-xs font-medium text-muted-foreground">Intensidad</p>
-          <div className="flex items-center gap-3 text-xs">
+          <div className="flex flex-wrap items-center gap-3 text-xs">
             <div className="flex items-center gap-1">
               <span className="h-2 w-2 rounded-full bg-success" />
               <span className="text-muted-foreground">Baja</span>

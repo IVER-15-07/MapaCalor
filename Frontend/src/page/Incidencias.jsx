@@ -59,7 +59,7 @@ const Incidencias = () => {
   return (
      <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-foreground">Incidencias</h1>
           <p className="text-muted-foreground">Gestión de daños reportados por el canal 4200-135</p>
@@ -74,8 +74,8 @@ const Incidencias = () => {
       </div>
 
       {/* Filters */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+        <div className="flex flex-wrap items-center gap-2">
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -98,7 +98,7 @@ const Incidencias = () => {
           ))}
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
@@ -106,7 +106,7 @@ const Incidencias = () => {
               placeholder="Buscar incidencia..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="h-10 w-64 rounded-lg border border-border bg-secondary pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+              className="h-10 w-full rounded-lg border border-border bg-secondary pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none sm:w-64"
             />
           </div>
           <button className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm text-muted-foreground hover:bg-secondary">
@@ -117,8 +117,8 @@ const Incidencias = () => {
       </div>
 
       {/* Table */}
-      <div className="rounded-xl border border-border bg-card overflow-hidden">
-        <table className="w-full">
+      <div className="overflow-x-auto rounded-xl border border-border bg-card">
+        <table className="min-w-[900px] w-full">
           <thead>
             <tr className="border-b border-border bg-secondary/50">
               <th className="px-4 py-3 text-left text-xs font-medium uppercase text-muted-foreground">ID</th>
@@ -181,11 +181,11 @@ const Incidencias = () => {
       </div>
 
       {/* Pagination */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground">
           Mostrando <span className="font-medium text-foreground">{filteredIncidents.length}</span> de <span className="font-medium text-foreground">{incidentsData.length}</span> incidencias
         </p>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-muted-foreground hover:bg-secondary" disabled>
             Anterior
           </button>
@@ -201,7 +201,7 @@ const Incidencias = () => {
       {/* New Incident Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-            <div className="w-full max-w-lg rounded-xl border border-border bg-card p-6">
+            <div className="w-[95vw] max-w-lg rounded-xl border border-border bg-card p-4 sm:p-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-semibold text-card-foreground">Nueva Incidencia</h2>
               <button onClick={() => setShowModal(false)} className="p-1 hover:bg-secondary rounded">
@@ -209,7 +209,7 @@ const Incidencias = () => {
               </button>
             </div>
             <form className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-card-foreground">Carné del Cliente</label>
                   <input type="text" placeholder="CLI-XXXX" className="h-10 w-full rounded-lg border border-border bg-secondary px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none" />

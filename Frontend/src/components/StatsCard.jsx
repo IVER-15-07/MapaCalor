@@ -1,5 +1,5 @@
 import { TrendingUp, TrendingDown } from 'lucide-react'
-import { cn } from '../lib/Utils.js'
+import { cn } from '../lib/Utils'
 
 // eslint-disable-next-line no-unused-vars
 const StatsCard = ({ title, value, change, trend, icon: Icon, color }) => {

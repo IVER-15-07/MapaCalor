@@ -51,8 +51,8 @@ const Clientes = () => {
             </div>
 
             {/* Filters */}
-            <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                         <input
@@ -60,7 +60,7 @@ const Clientes = () => {
                             placeholder="Buscar por carné, nombre o teléfono..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="h-10 w-80 rounded-lg border border-border bg-secondary pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+                            className="h-10 w-full rounded-lg border border-border bg-secondary pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none sm:w-80"
                         />
                     </div>
                     <div className="flex items-center gap-2">
@@ -82,7 +82,7 @@ const Clientes = () => {
             </div>
 
             {/* Customer Grid */}
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {filteredCustomers.map((customer) => (
                     <div
                         key={customer.id}
@@ -140,7 +140,7 @@ const Clientes = () => {
             {/* Customer Detail Modal */}
             {selectedCustomer && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-                    <div className="w-full max-w-lg rounded-xl border border-border bg-card">
+                    <div className="w-[95vw] max-w-lg rounded-xl border border-border bg-card">
                         {/* Header */}
                         <div className="flex items-center justify-between border-b border-border p-6">
                             <div className="flex items-center gap-4">
@@ -158,11 +158,11 @@ const Clientes = () => {
                         </div>
 
                         {/* Content */}
-                        <div className="p-6 space-y-6">
+                        <div className="space-y-6 p-4 sm:p-6">
                             {/* Contact Info */}
                             <div className="space-y-3">
                                 <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Información de Contacto</h3>
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                     <div className="flex items-center gap-3 rounded-lg bg-secondary p-3">
                                         <Phone className="h-5 w-5 text-muted-foreground" />
                                         <div>
@@ -192,7 +192,7 @@ const Clientes = () => {
                             {/* Stats */}
                             <div className="space-y-3">
                                 <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Estadísticas</h3>
-                                <div className="grid grid-cols-3 gap-4">
+                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                                     <div className="rounded-lg bg-secondary p-4 text-center">
                                         <p className="text-2xl font-semibold text-card-foreground">{selectedCustomer.incidents}</p>
                                         <p className="text-xs text-muted-foreground">Incidencias</p>
@@ -217,7 +217,7 @@ const Clientes = () => {
                         </div>
 
                         {/* Footer */}
-                        <div className="flex gap-3 border-t border-border p-6">
+                        <div className="flex flex-col gap-3 border-t border-border p-4 sm:flex-row sm:p-6">
                             <button className="flex-1 flex items-center justify-center gap-2 rounded-lg border border-border py-2.5 text-sm text-muted-foreground hover:bg-secondary">
                                 <FileText className="h-4 w-4" />
                                 Ver Historial

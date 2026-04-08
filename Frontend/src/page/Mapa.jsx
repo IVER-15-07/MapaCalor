@@ -49,16 +49,16 @@ const Mapa = () => {
     const totalIncidents = filteredPoints.reduce((sum, p) => sum + p.incidents, 0)
     const criticalCount = filteredPoints.filter(p => p.intensity === 'critical' || p.intensity === 'high').length
     return (
-        <div className="flex h-full gap-6">
+        <div className="flex h-full flex-col gap-6 xl:flex-row">
             {/* Main Map Area */}
-            <div className="flex-1 flex flex-col">
+            <div className="flex flex-1 flex-col">
                 {/* Header */}
-                <div className="mb-4 flex items-center justify-between">
+                <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                     <div>
                         <h1 className="text-2xl font-semibold text-foreground">Mapa de Calor</h1>
                         <p className="text-muted-foreground">Visualización geográfica de incidencias por zona</p>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                         <div className="flex items-center gap-1 rounded-lg border border-border bg-card">
                             <button
                                 onClick={() => setZoom(Math.max(0.5, zoom - 0.25))}
@@ -82,10 +82,10 @@ const Mapa = () => {
                 </div>
 
                 {/* District Filter */}
-                <div className="mb-4 flex items-center gap-2">
+                <div className="mb-4 flex flex-wrap items-center gap-2">
                     <Filter className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm text-muted-foreground">Filtrar por distrito:</span>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                         {districts.map((district) => (
                             <button
                                 key={district}
@@ -104,7 +104,7 @@ const Mapa = () => {
                 </div>
 
                 {/* Map Container */}
-                <div className="flex-1 rounded-xl border border-border bg-card overflow-hidden">
+                <div className="flex-1 overflow-hidden rounded-xl border border-border bg-card">
                     <div
                         className="relative h-full w-full bg-secondary/20"
                         style={{ transform: `scale(${zoom})`, transformOrigin: 'center center' }}
@@ -177,7 +177,7 @@ const Mapa = () => {
             </div>
 
             {/* Sidebar Panel */}
-            <div className="w-80 flex flex-col gap-4">
+            <div className="flex w-full flex-col gap-4 xl:w-80">
                 {/* Stats */}
                 <div className="grid grid-cols-2 gap-3">
                     <div className="rounded-lg border border-border bg-card p-4">

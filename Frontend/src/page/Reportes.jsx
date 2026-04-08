@@ -81,7 +81,7 @@ const Reportes = () => {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <div>
                     <h1 className="text-2xl font-semibold text-foreground">Reportes</h1>
                     <p className="text-muted-foreground">Generación de reportes digitales de incidencias</p>
@@ -93,9 +93,9 @@ const Reportes = () => {
             </div>
 
             {/* Report Type Selector */}
-            <div className="flex items-center gap-4">
+            <div className="flex flex-col gap-4 xl:flex-row xl:items-center">
                 <span className="text-sm text-muted-foreground">Tipo de reporte:</span>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                     {reportTypes.map((type) => (
                         <button
                             key={type.id}
@@ -112,12 +112,12 @@ const Reportes = () => {
                         </button>
                     ))}
                 </div>
-                <div className="ml-auto flex items-center gap-2">
+                <div className="flex items-center gap-2 xl:ml-auto">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
                     <select
                         value={dateRange}
                         onChange={(e) => setDateRange(e.target.value)}
-                        className="rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-foreground focus:outline-none"
+                        className="w-full rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-foreground focus:outline-none sm:w-auto"
                     >
                         <option>Esta semana</option>
                         <option>Semana pasada</option>
@@ -129,7 +129,7 @@ const Reportes = () => {
             </div>
 
             {/* Stats Summary */}
-            <div className="grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <div className="rounded-xl border border-border bg-card p-5">
                     <p className="text-sm text-muted-foreground">Total Incidencias</p>
                     <p className="text-2xl font-semibold text-card-foreground">308</p>
@@ -153,9 +153,9 @@ const Reportes = () => {
             </div>
 
             {/* Charts */}
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
                 {/* Bar Chart */}
-                <div className="rounded-xl border border-border bg-card p-6">
+                <div className="rounded-xl border border-border bg-card p-4 sm:p-6">
                     <div className="mb-4 flex items-center justify-between">
                         <div>
                             <h3 className="font-semibold text-card-foreground">Incidencias por Día</h3>
@@ -194,7 +194,7 @@ const Reportes = () => {
                 </div>
 
                 {/* Pie Chart - By Type */}
-                <div className="rounded-xl border border-border bg-card p-6">
+                <div className="rounded-xl border border-border bg-card p-4 sm:p-6">
                     <div className="mb-4">
                         <h3 className="font-semibold text-card-foreground">Distribución por Tipo</h3>
                         <p className="text-sm text-muted-foreground">Porcentaje de incidencias por categoría</p>
@@ -236,9 +236,9 @@ const Reportes = () => {
             </div>
 
             {/* Second row charts */}
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
                 {/* Monthly Trend */}
-                <div className="rounded-xl border border-border bg-card p-6">
+                <div className="rounded-xl border border-border bg-card p-4 sm:p-6">
                     <div className="mb-4">
                         <h3 className="font-semibold text-card-foreground">Tendencia Mensual</h3>
                         <p className="text-sm text-muted-foreground">Evolución de incidencias por mes</p>
@@ -264,7 +264,7 @@ const Reportes = () => {
                 </div>
 
                 {/* Pie Chart - By Zone */}
-                <div className="rounded-xl border border-border bg-card p-6">
+                <div className="rounded-xl border border-border bg-card p-4 sm:p-6">
                     <div className="mb-4">
                         <h3 className="font-semibold text-card-foreground">Distribución por Zona</h3>
                         <p className="text-sm text-muted-foreground">Porcentaje de incidencias por zona geográfica</p>
@@ -319,7 +319,7 @@ const Reportes = () => {
                 </div>
                 <div className="divide-y divide-border">
                     {recentReports.map((report) => (
-                        <div key={report.id} className="flex items-center justify-between p-4 hover:bg-secondary/30">
+                        <div key={report.id} className="flex flex-col gap-3 p-4 hover:bg-secondary/30 sm:flex-row sm:items-center sm:justify-between">
                             <div className="flex items-center gap-3">
                                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
                                     <FileText className="h-5 w-5 text-muted-foreground" />

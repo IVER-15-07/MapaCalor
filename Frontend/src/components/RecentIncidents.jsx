@@ -1,5 +1,5 @@
 import { Clock, Zap, Droplets, Wifi, AlertTriangle } from 'lucide-react'
-import { cn } from '../lib/utils'
+import { cn } from '../lib/Utils'
 
 
 const incidents = [
@@ -59,7 +59,7 @@ const statusConfig = {
 const RecentIncidents = () => {
   return (
     <div className="rounded-xl border border-border bg-card">
-      <div className="flex items-center justify-between border-b border-border p-4">
+      <div className="flex flex-col gap-3 border-b border-border p-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h3 className="font-semibold text-card-foreground">Incidencias Recientes</h3>
           <p className="text-sm text-muted-foreground">Últimas llamadas registradas</p>
