@@ -1,17 +1,26 @@
 import { useState } from 'react'
+import { useIsMobile } from '../hooks/movil'
 import { Search, Bell, Calendar, ChevronDown, User, Menu } from 'lucide-react'
 
-const Header = ({ isMobile, onMenuClick }) => {
-    const [dateRange, setDateRange] = useState('Hoy')
+/**
+ * HEADER - Componente independiente
+ * Barra superior del dashboard
+ * Maneja su propio estado y detecta mobile automáticamente
+ */
+
+const Header = ({ onMenuClick = () => {} }) => {
+  const [dateRange, setDateRange] = useState('Hoy')
+  const isMobile = useIsMobile()
+
   return (
-     <header className="flex min-h-16 items-center justify-between gap-3 border-b border-border bg-card px-4 py-3 sm:px-6">
-      {/* Search */}
+    <header className="flex min-h-16 items-center justify-between gap-3 border-b border-border bg-card px-4 py-3 sm:px-6">
+      {/* Sección izquierda - Búsqueda + Botón Menu */}
       <div className="flex flex-1 items-center gap-2">
         {isMobile && (
           <button
             type="button"
             onClick={onMenuClick}
-            className="rounded-lg p-2 hover:bg-secondary"
+            className="flex-shrink-0 rounded-lg p-2 hover:bg-secondary"
             aria-label="Abrir menú"
           >
             <Menu className="h-5 w-5 text-muted-foreground" />
@@ -28,9 +37,9 @@ const Header = ({ isMobile, onMenuClick }) => {
         </div>
       </div>
 
-      {/* Actions */}
+      {/* Sección derecha - Acciones */}
       <div className="flex items-center gap-2 sm:gap-4">
-        {/* Date Filter */}
+        {/* Filtro de Fecha */}
         <div className="hidden items-center gap-2 rounded-lg border border-border bg-secondary px-3 py-2 sm:flex">
           <Calendar className="h-4 w-4 text-muted-foreground" />
           <select
@@ -46,15 +55,18 @@ const Header = ({ isMobile, onMenuClick }) => {
           </select>
         </div>
 
-        {/* Notifications */}
-        <button className="relative rounded-lg p-2 hover:bg-secondary">
+        {/* Notificaciones */}
+        <button 
+          className="relative flex-shrink-0 rounded-lg p-2 hover:bg-secondary"
+          aria-label="Notificaciones"
+        >
           <Bell className="h-5 w-5 text-muted-foreground" />
           <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-destructive" />
         </button>
 
-        {/* User */}
+        {/* Perfil de Usuario */}
         <div className="hidden items-center gap-2 rounded-lg border border-border bg-secondary px-3 py-2 sm:flex">
-          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary">
+          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary flex-shrink-0">
             <User className="h-4 w-4 text-primary-foreground" />
           </div>
           <span className="text-sm text-foreground">Operador</span>
