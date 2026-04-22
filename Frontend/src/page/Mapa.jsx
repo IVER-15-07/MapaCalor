@@ -257,12 +257,18 @@ const Mapa = () => {
           )}
         </div>
 
-        <div className="relative z-0 min-h-[72vh] flex-1 overflow-hidden rounded-xl border border-border bg-card">
+
+
+
+        
+
+        <div className="relative z-0 min-h-[72vh] flex-1 overflow-hidden rounded-xl border border-border bg-slate-800">
           <MapContainer center={COCHA_CENTER} zoom={zoom} zoomControl={false} className="h-full w-full">
             <MapController zoomLevel={zoom} centerCoords={selectedPoint} />
             <TileLayer
               url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+              opacity={0.88}
             />
 
             {activePoints.map((point) => (
@@ -273,8 +279,9 @@ const Mapa = () => {
                 pathOptions={{
                   color: intensityConfig[point.intensity].hex,
                   fillColor: intensityConfig[point.intensity].hex,
-                  fillOpacity: 0.6,
-                  weight: 2,
+                  fillOpacity: 0.45,
+                  weight: 1.5,
+                  opacity: 0.85,
                 }}
                 eventHandlers={{
                   click: () => handlePointSelect(point),
@@ -292,6 +299,13 @@ const Mapa = () => {
             ))}
           </MapContainer>
         </div>
+
+
+
+
+
+
+
 
         <div className="mt-4 flex items-center justify-between rounded-lg border border-border bg-card p-3">
           <div className="flex items-center gap-6">
