@@ -41,6 +41,19 @@ def _normalize_text(value: object) -> str:
 	return str(value).strip().lower()
 
 
+def _parse_datetime(value: object) -> pd.Timestamp | pd.NaT:
+	text_value = str(value).strip()
+	if not text_value:
+		return pd.NaT
+
+	# Fechas ISO como 2026-03-20 o 2026-03-20T09:09:00 no deben usar dayfirst=True.
+	is_iso_like = len(text_value) >= 10 and text_value[4] == "-" and text_value[7] == "-"
+	if is_iso_like:
+		return pd.to_datetime(text_value, dayfirst=False, errors="coerce")
+
+	return pd.to_datetime(text_value, dayfirst=True, errors="coerce")
+
+
 def _normalize_date_variants(value: object) -> set[str]:
 	normalized_values: set[str] = set()
 	if value is None:
@@ -53,7 +66,7 @@ def _normalize_date_variants(value: object) -> set[str]:
 	normalized_values.add(text_value.lower())
 
 	try:
-		parsed_date = pd.to_datetime(text_value, dayfirst=True, errors="coerce")
+		parsed_date = _parse_datetime(text_value)
 	except Exception:
 		parsed_date = pd.NaT
 
@@ -150,7 +163,7 @@ class ExcelIncidentRepository:
 					date_matches = True
 				else:
 					try:
-						parsed_record_date = pd.to_datetime(str(fecha_value), dayfirst=True, errors="coerce")
+						parsed_record_date = _parse_datetime(fecha_value)
 					except Exception:
 						parsed_record_date = pd.NaT
 
@@ -185,7 +198,7 @@ class ExcelIncidentRepository:
 				date_matches = True
 			else:
 				try:
-					parsed_record_date = pd.to_datetime(str(fecha_value), dayfirst=True, errors="coerce")
+					parsed_record_date = _parse_datetime(fecha_value)
 				except Exception:
 					parsed_record_date = pd.NaT
 

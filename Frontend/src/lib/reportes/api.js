@@ -3,12 +3,12 @@
  * Gestiona operaciones de reportes
  */
 
-import { apiCall } from "../api.js"
+import { apiClient } from "../api.js"
 
 export const reportesAPI = {
   // Obtener reportes en tiempo real
   getRealtimeReports: () =>
-    apiCall("/incidents/realtime/", { method: "GET" }),
+    apiClient.get("/incidents/realtime/").then((response) => response.data),
 
   // Obtener reportes históricos por rango opcional
   getHistoricReports: ({ startDate, endDate, limit = 200 } = {}) => {
@@ -16,25 +16,27 @@ export const reportesAPI = {
     if (startDate) params.append("start_date", startDate)
     if (endDate) params.append("end_date", endDate)
     params.append("limit", String(limit))
-    return apiCall(`/incidents/historic/?${params.toString()}`, { method: "GET" })
+    return apiClient.get("/incidents/historic/", { params }).then((response) => response.data)
   },
 
   // Obtener reportes de rango de fechas
   getReportsByDateRange: (startDate, endDate) =>
-    apiCall(`/incidents/historic/?start_date=${startDate}&end_date=${endDate}`, { method: "GET" }),
+    apiClient.get("/incidents/historic/", {
+      params: { start_date: startDate, end_date: endDate },
+    }).then((response) => response.data),
 
   // Obtener estado crítico actual
   getCriticalStatus: () =>
-    apiCall("/incidents/stats/", { method: "GET" }),
+    apiClient.get("/incidents/stats/").then((response) => response.data),
 
   // Crear nuevo reporte
   createReport: (reportData) =>
-    apiCall("/incidents/", { method: "POST", body: reportData }),
+    apiClient.post("/incidents/", reportData).then((response) => response.data),
 
   // Generar reporte PDF/Excel
   generateReport: (reportType, dateRange) =>
-    apiCall(`/incidents/generate/`, {
-      method: "POST", 
-      body: { type: reportType, dateRange } 
-    }),
+    apiClient.post("/incidents/generate/", {
+      type: reportType,
+      dateRange,
+    }).then((response) => response.data),
 }
