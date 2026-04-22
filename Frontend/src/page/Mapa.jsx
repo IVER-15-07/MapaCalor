@@ -96,22 +96,37 @@ const normalizeSectorKey = (value) => {
 
 const getTodayISO = () => new Date().toISOString().slice(0, 10)
 
-const mapSectorNamesToPoints = (sectorNames) => {
-  const activeSectorSet = new Set(sectorNames.map(normalizeSectorKey))
+const mapSectorNamesToPoints = (incidentesPorSector) => {
+  const countBySector = new Map(
+    (incidentesPorSector || []).map((item) => [
+      normalizeSectorKey(item.sector_operativo),
+      Number(item.total_incidentes || 0),
+    ])
+  )
 
   return zoneData
-    .filter((data) => activeSectorSet.has(normalizeSectorKey(data.name)))
+    .filter((data) => countBySector.has(normalizeSectorKey(data.name)))
     .map((data, index) => {
       const lat = COCHA_CENTER[0] - (data.y - 50) * 0.003
       const lng = COCHA_CENTER[1] + (data.x - 50) * 0.003
+      const incidents = countBySector.get(normalizeSectorKey(data.name)) || 0
+
+      let intensity = 'low'
+      if (incidents >= 8) {
+        intensity = 'critical'
+      } else if (incidents >= 5) {
+        intensity = 'high'
+      } else if (incidents >= 2) {
+        intensity = 'medium'
+      }
 
       return {
         id: `${data.name}-${index}`,
         lat,
         lng,
-        intensity: 'high',
+        intensity,
         zone: data.name,
-        incidents: 1,
+        incidents,
         district: data.name,
       }
     })
@@ -137,6 +152,7 @@ const Mapa = () => {
   const [selectedDate, setSelectedDate] = useState(getTodayISO())
   const [sectorPoints, setSectorPoints] = useState([])
   const [backendSectorCount, setBackendSectorCount] = useState(0)
+  const [backendIncidentCount, setBackendIncidentCount] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [selectedPoint, setSelectedPoint] = useState(null)
@@ -154,13 +170,15 @@ const Mapa = () => {
 
       try {
         const response = await historialService.getSectorsByDate(selectedDate)
-        const sectors = response.sectores || []
-        const points = mapSectorNamesToPoints(sectors)
-        setBackendSectorCount(sectors.length)
+        const incidentesPorSector = response.incidentes_por_sector || []
+        const points = mapSectorNamesToPoints(incidentesPorSector)
+        setBackendSectorCount(response.total || incidentesPorSector.length)
+        setBackendIncidentCount(response.total_incidentes || 0)
         setSectorPoints(points)
         setSelectedPoint(null)
       } catch (requestError) {
         setBackendSectorCount(0)
+        setBackendIncidentCount(0)
         setSectorPoints([])
         setError(requestError.message || 'No se pudo cargar la información')
       } finally {
@@ -172,7 +190,7 @@ const Mapa = () => {
   }, [selectedDate])
 
   const activePoints = useMemo(() => sectorPoints, [sectorPoints])
-  const totalIncidents = activePoints.length
+  const totalIncidents = activePoints.reduce((sum, point) => sum + point.incidents, 0)
   const sectorCount = activePoints.length
 
   const handlePointSelect = (point) => {
@@ -234,7 +252,7 @@ const Mapa = () => {
           )}
           {!error && !loading && (
             <div className="text-xs text-muted-foreground">
-              Backend: {backendSectorCount} sectores, Mapa: {sectorPoints.length} sectores ubicados
+              Backend: {backendSectorCount} sectores / {backendIncidentCount} incidentes, Mapa: {sectorPoints.length} sectores ubicados
             </div>
           )}
         </div>

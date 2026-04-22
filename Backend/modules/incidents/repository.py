@@ -79,6 +79,31 @@ def _normalize_date_variants(value: object) -> set[str]:
 	return normalized_values
 
 
+def _matches_date(fecha_value: object, normalized_date_variants: set[str]) -> bool:
+	if not normalized_date_variants:
+		return True
+
+	fecha_text = _normalize_text(fecha_value)
+	if fecha_text in normalized_date_variants:
+		return True
+
+	try:
+		parsed_record_date = _parse_datetime(fecha_value)
+	except Exception:
+		parsed_record_date = pd.NaT
+
+	if pd.notna(parsed_record_date):
+		record_date_variants = {
+			parsed_record_date.strftime("%Y-%m-%d"),
+			parsed_record_date.strftime("%d/%m/%Y"),
+			parsed_record_date.strftime("%d/%m/%Y %H:%M"),
+			parsed_record_date.strftime("%d/%m/%Y %H:%M:%S"),
+		}
+		return bool(record_date_variants.intersection(normalized_date_variants))
+
+	return False
+
+
 @dataclass
 class ExcelIncidentRepository:
 	source_path: Path | None
@@ -191,27 +216,7 @@ class ExcelIncidentRepository:
 
 		for record in self.to_records():
 			fecha_value = record.fecha_registro
-			fecha_text = _normalize_text(fecha_value)
-
-			date_matches = False
-			if fecha_text in normalized_date_variants:
-				date_matches = True
-			else:
-				try:
-					parsed_record_date = _parse_datetime(fecha_value)
-				except Exception:
-					parsed_record_date = pd.NaT
-
-				if pd.notna(parsed_record_date):
-					record_date_variants = {
-						parsed_record_date.strftime("%Y-%m-%d"),
-						parsed_record_date.strftime("%d/%m/%Y"),
-						parsed_record_date.strftime("%d/%m/%Y %H:%M"),
-						parsed_record_date.strftime("%d/%m/%Y %H:%M:%S"),
-					}
-					date_matches = bool(record_date_variants.intersection(normalized_date_variants))
-
-			if not date_matches:
+			if not _matches_date(fecha_value, normalized_date_variants):
 				continue
 
 			sector_value = (record.sector_operativo or "").strip()
@@ -226,3 +231,45 @@ class ExcelIncidentRepository:
 			sectors.append(sector_value)
 
 		return sectors
+
+	def get_incidents_summary_by_date(self, fecha_registro: str) -> dict[str, object]:
+		normalized_date_variants = _normalize_date_variants(fecha_registro)
+		if not normalized_date_variants:
+			return {
+				"sectores": [],
+				"incidentes_por_sector": [],
+				"total_sectores": 0,
+				"total_incidentes": 0,
+			}
+
+		counts_by_sector: dict[str, int] = {}
+		canonical_name: dict[str, str] = {}
+
+		for record in self.to_records():
+			if not _matches_date(record.fecha_registro, normalized_date_variants):
+				continue
+
+			sector_value = (record.sector_operativo or "").strip()
+			if not sector_value:
+				continue
+
+			sector_key = sector_value.lower()
+			canonical_name.setdefault(sector_key, sector_value)
+			counts_by_sector[sector_key] = counts_by_sector.get(sector_key, 0) + 1
+
+		ordered_keys = sorted(counts_by_sector.keys(), key=lambda key: canonical_name[key].lower())
+		incidentes_por_sector = [
+			{
+				"sector_operativo": canonical_name[key],
+				"total_incidentes": counts_by_sector[key],
+			}
+			for key in ordered_keys
+		]
+
+		total_incidentes = sum(item["total_incidentes"] for item in incidentes_por_sector)
+		return {
+			"sectores": [item["sector_operativo"] for item in incidentes_por_sector],
+			"incidentes_por_sector": incidentes_por_sector,
+			"total_sectores": len(incidentes_por_sector),
+			"total_incidentes": total_incidentes,
+		}

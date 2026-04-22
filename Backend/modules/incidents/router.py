@@ -15,7 +15,7 @@ def get_by_sector_and_date(
 ) -> SectorByDateResponse:
 
     try:
-        sectors = service.get_sectors_by_date(fecha_registro)
+        summary = service.get_incidents_summary_by_date(fecha_registro)
     except FileNotFoundError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
     except Exception as error:
@@ -23,7 +23,9 @@ def get_by_sector_and_date(
 
     return SectorByDateResponse(
         fecha_registro=fecha_registro,
-        total=len(sectors),
-        sectores=sectors,
+        total=summary["total_sectores"],
+        total_incidentes=summary["total_incidentes"],
+        sectores=summary["sectores"],
+        incidentes_por_sector=summary["incidentes_por_sector"],
     )
 
