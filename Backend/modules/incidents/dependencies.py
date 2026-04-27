@@ -12,4 +12,8 @@ def get_incident_repository() -> ExcelIncidentRepository:
 
 
 def get_incident_service() -> IncidentService:
-    return IncidentService(get_incident_repository())
+    settings = get_settings()
+    return IncidentService(
+        get_incident_repository(),
+        heatmap_call_threshold=settings.heatmap_call_threshold,
+    )

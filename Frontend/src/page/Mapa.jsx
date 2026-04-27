@@ -7,6 +7,9 @@ import {
   X,
   CalendarDays,
   Loader2,
+  Phone,
+  AlertTriangle,
+  PhoneCall,
 } from 'lucide-react'
 import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -14,6 +17,9 @@ import { cn } from '../lib/Utils'
 import { historialService } from '../api/incidencias/Historial'
 
 const COCHA_CENTER = [-17.3895, -66.1568]
+const ELASTIX_FEED_INTERVAL_MS = 1200
+const ELASTIX_RECENT_WINDOW_MS = 10 * 60 * 1000
+const CRITICAL_THRESHOLD_DEFAULT = 30
 
 const zoneData = [
   { name: 'AEROPUERTO', x: 45, y: 55 },
@@ -96,11 +102,23 @@ const normalizeSectorKey = (value) => {
 
 const getTodayISO = () => new Date().toISOString().slice(0, 10)
 
-const mapSectorNamesToPoints = (incidentesPorSector) => {
+const getRandomInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min
+
+const formatElapsed = (milliseconds) => {
+  const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000))
+  const minutes = String(Math.floor(totalSeconds / 60)).padStart(2, '0')
+  const seconds = String(totalSeconds % 60).padStart(2, '0')
+  return `${minutes}:${seconds}s`
+}
+
+const mapSectorNamesToPoints = (llamadasPorSector) => {
   const countBySector = new Map(
-    (incidentesPorSector || []).map((item) => [
+    (llamadasPorSector || []).map((item) => [
       normalizeSectorKey(item.sector_operativo),
-      Number(item.total_incidentes || 0),
+      {
+        llamadas: Number(item.total_llamadas || 0),
+        intensidad: item.intensidad || 'low',
+      },
     ])
   )
 
@@ -109,27 +127,47 @@ const mapSectorNamesToPoints = (incidentesPorSector) => {
     .map((data, index) => {
       const lat = COCHA_CENTER[0] - (data.y - 50) * 0.003
       const lng = COCHA_CENTER[1] + (data.x - 50) * 0.003
-      const incidents = countBySector.get(normalizeSectorKey(data.name)) || 0
-
-      let intensity = 'low'
-      if (incidents >= 8) {
-        intensity = 'critical'
-      } else if (incidents >= 5) {
-        intensity = 'high'
-      } else if (incidents >= 2) {
-        intensity = 'medium'
-      }
+      const countData = countBySector.get(normalizeSectorKey(data.name)) || { llamadas: 0, intensidad: 'low' }
 
       return {
         id: `${data.name}-${index}`,
         lat,
         lng,
-        intensity,
+        intensity: countData.intensidad,
         zone: data.name,
-        incidents,
+        incidents: countData.llamadas,
         district: data.name,
       }
     })
+}
+
+const buildElastixSectorSummary = (calls) => {
+  const now = Date.now()
+  const countsBySector = new Map()
+
+  calls
+    .filter((call) => now - call.timestamp <= ELASTIX_RECENT_WINDOW_MS)
+    .forEach((call) => {
+      const key = call.sector_operativo
+      countsBySector.set(key, (countsBySector.get(key) || 0) + 1)
+    })
+
+  return [...countsBySector.entries()].map(([sectorOperativo, totalLlamadas]) => {
+    let intensidad = 'low'
+    if (totalLlamadas >= 14) {
+      intensidad = 'critical'
+    } else if (totalLlamadas >= 8) {
+      intensidad = 'high'
+    } else if (totalLlamadas >= 4) {
+      intensidad = 'medium'
+    }
+
+    return {
+      sector_operativo: sectorOperativo,
+      total_llamadas: totalLlamadas,
+      intensidad,
+    }
+  })
 }
 
 const MapController = ({ zoomLevel, centerCoords }) => {
@@ -149,19 +187,27 @@ const MapController = ({ zoomLevel, centerCoords }) => {
 }
 
 const Mapa = () => {
+  const todayISO = useMemo(() => getTodayISO(), [])
   const [selectedDate, setSelectedDate] = useState(getTodayISO())
-  const [sectorPoints, setSectorPoints] = useState([])
+  const [smarflexPoints, setSmarflexPoints] = useState([])
   const [backendSectorCount, setBackendSectorCount] = useState(0)
   const [backendIncidentCount, setBackendIncidentCount] = useState(0)
+  const [elastixEnabled, setElastixEnabled] = useState(true)
+  const [criticalThreshold, setCriticalThreshold] = useState(CRITICAL_THRESHOLD_DEFAULT)
+  const [concurrentCalls, setConcurrentCalls] = useState(0)
+  const [elastixCalls, setElastixCalls] = useState([])
+  const [criticalSince, setCriticalSince] = useState(null)
+  const [mapState, setMapState] = useState('normal')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [selectedPoint, setSelectedPoint] = useState(null)
   const [zoom, setZoom] = useState(12)
+  const isRealtimeDate = selectedDate === todayISO
 
   useEffect(() => {
     const loadSectors = async () => {
       if (!selectedDate) {
-        setSectorPoints([])
+        setSmarflexPoints([])
         return
       }
 
@@ -169,17 +215,20 @@ const Mapa = () => {
       setError('')
 
       try {
-        const response = await historialService.getSectorsByDate(selectedDate)
-        const incidentesPorSector = response.incidentes_por_sector || []
-        const points = mapSectorNamesToPoints(incidentesPorSector)
-        setBackendSectorCount(response.total || incidentesPorSector.length)
-        setBackendIncidentCount(response.total_incidentes || 0)
-        setSectorPoints(points)
+        const response = await historialService.getHeatmapState({
+          fechaRegistro: selectedDate,
+          mode: 'normal',
+        })
+        const llamadasPorSector = response.llamadas_por_sector || []
+        const points = mapSectorNamesToPoints(llamadasPorSector)
+        setBackendSectorCount(response.total_sectores || llamadasPorSector.length)
+        setBackendIncidentCount(response.total_llamadas || 0)
+        setSmarflexPoints(points)
         setSelectedPoint(null)
       } catch (requestError) {
         setBackendSectorCount(0)
         setBackendIncidentCount(0)
-        setSectorPoints([])
+        setSmarflexPoints([])
         setError(requestError.message || 'No se pudo cargar la información')
       } finally {
         setLoading(false)
@@ -189,9 +238,60 @@ const Mapa = () => {
     loadSectors()
   }, [selectedDate])
 
-  const activePoints = useMemo(() => sectorPoints, [sectorPoints])
+  useEffect(() => {
+    if (!elastixEnabled || !isRealtimeDate) {
+      setConcurrentCalls(0)
+      return
+    }
+
+    const timer = setInterval(() => {
+      const generatedCalls = Array.from({ length: getRandomInt(1, 4) }).map((_, index) => {
+        const zone = zoneData[getRandomInt(0, zoneData.length - 1)]
+        return {
+          id: `ELX-${Date.now()}-${index}`,
+          sector_operativo: zone.name,
+          timestamp: Date.now(),
+        }
+      })
+
+      setElastixCalls((previous) => [...generatedCalls, ...previous].slice(0, 1200))
+      setConcurrentCalls((previous) => {
+        const spike = Math.random() < 0.22
+        const delta = spike ? getRandomInt(4, 11) : getRandomInt(-3, 4)
+        return Math.max(0, Math.min(200, previous + delta))
+      })
+    }, ELASTIX_FEED_INTERVAL_MS)
+
+    return () => clearInterval(timer)
+  }, [elastixEnabled, isRealtimeDate])
+
+  useEffect(() => {
+    const isCritical = elastixEnabled && isRealtimeDate && concurrentCalls >= criticalThreshold
+    setMapState(isCritical ? 'critical' : 'normal')
+    setCriticalSince((previous) => {
+      if (isCritical && !previous) return Date.now()
+      if (!isCritical) return null
+      return previous
+    })
+  }, [concurrentCalls, criticalThreshold, elastixEnabled, isRealtimeDate])
+
+  const elastixSummary = useMemo(
+    () => (isRealtimeDate ? buildElastixSectorSummary(elastixCalls) : []),
+    [elastixCalls, isRealtimeDate]
+  )
+  const elastixPoints = useMemo(() => mapSectorNamesToPoints(elastixSummary), [elastixSummary])
+  const sourceMode = mapState === 'critical' && isRealtimeDate ? 'elastix' : 'smarflex'
+
+  const activePoints = useMemo(
+    () => (sourceMode === 'elastix' ? elastixPoints : smarflexPoints),
+    [sourceMode, elastixPoints, smarflexPoints]
+  )
   const totalIncidents = activePoints.reduce((sum, point) => sum + point.incidents, 0)
   const sectorCount = activePoints.length
+  const metricLabel = sourceMode === 'elastix' ? 'llamadas' : 'incidencias'
+  const metricLabelTitle = sourceMode === 'elastix' ? 'Llamadas' : 'Incidencias'
+  const crisisTimer = mapState === 'critical' && criticalSince ? formatElapsed(Date.now() - criticalSince) : '00:00s'
+  const recentElastixCalls = elastixCalls.slice(0, 6)
 
   const handlePointSelect = (point) => {
     setSelectedPoint(point)
@@ -228,6 +328,54 @@ const Mapa = () => {
           </div>
         </div>
 
+        <div
+          className={cn(
+            'mb-4 rounded-2xl border px-4 py-3 shadow-[0_0_24px_rgba(239,68,68,0.12)]',
+            mapState === 'critical'
+              ? 'border-red-400/70 bg-slate-950 text-red-100'
+              : 'border-emerald-300/50 bg-slate-900 text-emerald-100'
+          )}
+        >
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-center gap-3">
+              <div
+                className={cn(
+                  'flex h-11 w-11 items-center justify-center rounded-full border',
+                  mapState === 'critical'
+                    ? 'border-red-400/70 bg-red-500/20 text-red-200'
+                    : 'border-emerald-400/70 bg-emerald-500/20 text-emerald-100'
+                )}
+              >
+                <AlertTriangle className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold tracking-wide">
+                  {mapState === 'critical' ? 'CRISIS DETECTED' : 'LIVE ELASTIX MONITOR'}
+                </p>
+                <p className="text-xs uppercase tracking-wider text-red-200/85">
+                  Nivel situacional: {mapState === 'critical' ? 'Critical' : 'Normal'} | Fuente activa:{' '}
+                  {sourceMode === 'elastix' ? 'Elastix' : 'Smarflex'}
+                </p>
+                {!isRealtimeDate && (
+                  <p className="text-xs uppercase tracking-wider text-amber-300/90">
+                    Elastix solo disponible en tiempo real (fecha de hoy)
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="rounded-lg border border-white/15 bg-white/5 px-4 py-2">
+                <p className="text-[10px] uppercase tracking-wider text-red-100/70">Response Time</p>
+                <p className="text-2xl font-semibold">{crisisTimer}</p>
+              </div>
+              <button className="rounded-lg bg-red-200 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-red-950 hover:bg-red-100">
+                Deploy Field Teams
+              </button>
+            </div>
+          </div>
+        </div>
+
         <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card p-3">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <CalendarDays className="h-4 w-4" />
@@ -239,10 +387,45 @@ const Mapa = () => {
             onChange={(e) => setSelectedDate(e.target.value)}
             className="rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
           />
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Phone className="h-4 w-4" />
+            <span>Concurrencia Elastix:</span>
+          </div>
+          <span className="rounded-lg border border-border bg-secondary px-3 py-2 text-sm font-semibold text-foreground">
+            {concurrentCalls}
+          </span>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span>Umbral:</span>
+            <input
+              type="number"
+              min={1}
+              value={criticalThreshold}
+              onChange={(e) => setCriticalThreshold(Number(e.target.value) || 1)}
+              className="w-24 rounded-lg border border-border bg-secondary px-2 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+          </div>
+          <button
+            onClick={() => setElastixEnabled((previous) => !previous)}
+            disabled={!isRealtimeDate}
+            className={cn(
+              'rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-wide disabled:cursor-not-allowed disabled:opacity-50',
+              elastixEnabled ? 'bg-emerald-500/15 text-emerald-600' : 'bg-slate-500/15 text-slate-600'
+            )}
+          >
+            {!isRealtimeDate ? 'Elastix fuera de tiempo real' : elastixEnabled ? 'Elastix activo' : 'Elastix pausado'}
+          </button>
+          <span
+            className={cn(
+              'rounded-full px-3 py-1 text-xs font-semibold uppercase',
+              mapState === 'critical' ? 'bg-red-500/15 text-red-500' : 'bg-green-500/15 text-green-600'
+            )}
+          >
+            Estado: {mapState === 'critical' ? 'Crítico' : 'Normal'}
+          </span>
           {loading && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
-              Cargando sectores...
+              Cargando incidencias...
             </div>
           )}
           {error && (
@@ -252,7 +435,7 @@ const Mapa = () => {
           )}
           {!error && !loading && (
             <div className="text-xs text-muted-foreground">
-              Backend: {backendSectorCount} sectores / {backendIncidentCount} incidentes, Mapa: {sectorPoints.length} sectores ubicados
+              Smarflex: {backendSectorCount} sectores / {backendIncidentCount} incidencias | Elastix: {isRealtimeDate ? `${elastixSummary.length} sectores con llamadas` : 'deshabilitado (histórico)'}
             </div>
           )}
         </div>
@@ -291,7 +474,7 @@ const Mapa = () => {
                   <div className="p-1 text-center">
                     <h3 className="text-sm font-bold text-slate-800">{point.zone}</h3>
                     <p className="mt-1 text-xs text-slate-600">
-                      Registros: <strong className="text-slate-900">{point.incidents}</strong>
+                      {metricLabelTitle}: <strong className="text-slate-900">{point.incidents}</strong>
                     </p>
                   </div>
                 </Popup>
@@ -322,7 +505,7 @@ const Mapa = () => {
               <span className="font-semibold text-foreground">{sectorCount}</span> zonas
             </span>
             <span className="text-muted-foreground">
-              <span className="font-semibold text-foreground">{totalIncidents}</span> registros
+              <span className="font-semibold text-foreground">{totalIncidents}</span> {metricLabel} ({sourceMode})
             </span>
           </div>
         </div>
@@ -337,6 +520,28 @@ const Mapa = () => {
           <div className="rounded-lg border border-border bg-card p-4">
             <p className="text-xs text-muted-foreground">Fecha consultada</p>
             <p className="text-sm font-semibold text-destructive">{selectedDate || '-'}</p>
+          </div>
+        </div>
+
+        <div className="overflow-hidden rounded-xl border border-border bg-card">
+          <div className="flex items-center justify-between border-b border-border p-4">
+            <h3 className="font-semibold text-card-foreground">Llamadas Elastix en vivo</h3>
+            <span className="text-xs text-muted-foreground">{recentElastixCalls.length} recientes</span>
+          </div>
+          <div className="divide-y divide-border">
+            {recentElastixCalls.length > 0 ? (
+              recentElastixCalls.map((call) => (
+                <div key={call.id} className="flex items-center justify-between px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <PhoneCall className="h-4 w-4 text-primary" />
+                    <span className="text-sm text-card-foreground">{call.sector_operativo}</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">{new Date(call.timestamp).toLocaleTimeString()}</span>
+                </div>
+              ))
+            ) : (
+              <div className="p-4 text-sm text-muted-foreground">Esperando llamadas desde Elastix...</div>
+            )}
           </div>
         </div>
 
@@ -357,7 +562,7 @@ const Mapa = () => {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="rounded-lg bg-secondary p-3">
-                  <p className="text-xs text-muted-foreground">Registros</p>
+                  <p className="text-xs text-muted-foreground">{metricLabelTitle}</p>
                   <p className="text-xl font-semibold text-foreground">{selectedPoint.incidents}</p>
                 </div>
                 <div className="rounded-lg bg-secondary p-3">
@@ -385,7 +590,7 @@ const Mapa = () => {
           <div className="border-b border-border bg-muted/20 p-4">
             <h3 className="font-semibold text-card-foreground">Sectores del día</h3>
           </div>
-          <div className="flex h-[300px] flex-1 flex-col divide-y divide-border overflow-y-auto">
+          <div className="flex h-75 flex-1 flex-col divide-y divide-border overflow-y-auto">
             {activePoints.length > 0 ? (
               [...activePoints]
                 .sort((a, b) => a.zone.localeCompare(b.zone))
@@ -407,7 +612,7 @@ const Mapa = () => {
                 ))
             ) : (
               <div className="flex h-full items-center justify-center p-6 text-center text-sm text-muted-foreground">
-                No hay sectores para la fecha seleccionada.
+                No hay sectores para la fuente activa.
               </div>
             )}
           </div>

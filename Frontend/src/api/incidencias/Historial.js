@@ -12,6 +12,24 @@ export const historialService = {
             throw new Error(error.response?.data?.detail || 'Error al obtener el historial por fecha')
         }
     },
+
+    // Obtiene estado del mapa + llamadas por sector
+    async getHeatmapState({ fechaRegistro, mode = 'auto', threshold } = {}) {
+        try {
+            const params = {
+                fecha_registro: fechaRegistro,
+                mode,
+            }
+            if (threshold) {
+                params.threshold = threshold
+            }
+
+            const response = await axiosInstance.get('/incidents/heatmap-state', { params })
+            return response.data
+        } catch (error) {
+            throw new Error(error.response?.data?.detail || 'Error al obtener estado del mapa de calor')
+        }
+    },
 }
 
 
