@@ -5,6 +5,7 @@ import Dashboard from './page/Dashboard'
 import Mapa from './page/Mapa'
 import Reportes from './page/Reportes'
 
+
 import Clientes from './page/Clientes'
 
 function App() {
@@ -17,6 +18,7 @@ function App() {
           <Route path="mapa" element={<Mapa />} />
           <Route path="reportes" element={<Reportes />} />
           <Route path="clientes" element={<Clientes />} />
+         
         </Route>
       </Routes>
     </>

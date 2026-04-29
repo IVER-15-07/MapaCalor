@@ -23,12 +23,13 @@ const navItems = [
     label: 'Principal', 
     items: [
       { name: 'Dashboard', href: '/', icon: LayoutDashboard },
-      { name: 'Mapa de Calor', href: '/mapa', icon: Map },
+      { name: 'Historicos', href: '/mapa', icon: Map },
     ]
   },
   { 
     label: 'Gestión', 
     items: [
+     
       { name: 'Incidencias', href: '/incidencias', icon: AlertTriangle },
       { name: 'Clientes', href: '/clientes', icon: Users },
       { name: 'Reportes', href: '/reportes', icon: FileText },
