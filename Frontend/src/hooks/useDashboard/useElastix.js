@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
-import { getRandomInt, ELASTIX_FEED_INTERVAL_MS, zoneData } from '../components/mapa/mapUtils'
+import { getRandomInt, ELASTIX_FEED_INTERVAL_MS, zoneData } from '../../components/mapa/mapUtils'
 
 
 export const useElastix = (enabled, isRealtimeDate, options = {}) => {

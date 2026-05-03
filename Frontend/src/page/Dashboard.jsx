@@ -18,7 +18,7 @@ import {
   formatElapsed,
 } from '../components/mapa/mapUtils'
 
-import { useElastix } from '../hooks/useElastix'
+import { useElastix } from '../hooks/useDashboard/useElastix'
 
 // ── Datos estáticos del gráfico de tendencia ────────────────
 const trendData = [

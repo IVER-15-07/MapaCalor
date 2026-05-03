@@ -1,22 +1,8 @@
 
 import { NavLink } from 'react-router-dom'
 import { useIsMobile } from '../hooks/movil'
-import { 
-  LayoutDashboard, 
-  AlertTriangle, 
-  Map, 
-  FileText, 
-  Users,
-  Flame,
-  X
-} from 'lucide-react'
+import { LayoutDashboard, AlertTriangle, Map, FileText, Users, Flame, X, User, Bell } from 'lucide-react'
 import { cn } from '../lib/Utils'
-
-/**
- * SIDEBAR - Componente independiente
- * Maneja su propio state de mobile/desktop
- * Completamente desacoplado del layout principal
- */
 
 const navItems = [
   { 
@@ -24,6 +10,7 @@ const navItems = [
     items: [
       { name: 'Dashboard', href: '/', icon: LayoutDashboard },
       { name: 'Historicos', href: '/mapa', icon: Map },
+      { name: 'Notificaciones', href: '/notificaciones', icon: Bell },
     ]
   },
   { 
@@ -49,7 +36,6 @@ const Sidebar = ({ isOpen = true, onClose }) => {
           : 'relative h-screen'
       )}
     >
-      {/* Logo - Header del Sidebar */}
       <div className="flex h-16 items-center justify-between gap-2 border-b border-sidebar-border px-6">
         <div className="flex items-center gap-2 flex-1">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
@@ -105,14 +91,13 @@ const Sidebar = ({ isOpen = true, onClose }) => {
         ))}
       </nav>
 
-      {/* Footer - Status */}
       <div className="border-t border-sidebar-border p-4">
         <div className="flex items-center gap-3 rounded-lg bg-sidebar-accent p-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/20">
-            <Flame className="h-4 w-4 text-primary" />
+        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary flex-shrink-0">
+            <User className="h-4 w-4 text-primary-foreground" />
           </div>
           <div className="flex-1">
-            <p className="text-xs font-medium text-sidebar-foreground">SmartFlex</p>
+            <p className="text-xs font-medium text-sidebar-foreground">Operador</p>
             <p className="text-xs text-muted-foreground">Conectado</p>
           </div>
           <span className="h-2 w-2 rounded-full bg-success" />
