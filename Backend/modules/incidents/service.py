@@ -33,6 +33,13 @@ def _first_non_empty(record: dict[str, object], keys: list[str]) -> str:
     return "-"
 
 
+def _extract_damage_code(record: dict[str, object]) -> str:
+    return _first_non_empty(
+        record,
+        ["codigo_danio", "codigo_daño", "codigo_de_danio", "codigo_de_daño", "danio", "daño", "id_danio", "id_daño"],
+    )
+
+
 class IncidentService:
     def __init__(self, repository: ExcelIncidentRepository, heatmap_call_threshold: int = 30):
         self.repository = repository
@@ -51,21 +58,24 @@ class IncidentService:
             records = self.repository.to_records()
 
         rows: list[dict[str, str]] = []
+        seen_damage_codes: set[str] = set()
+
         for index, record in enumerate(records, start=1):
             raw = record.model_dump()
+            damage_code = _extract_damage_code(raw)
+            if damage_code and damage_code in seen_damage_codes:
+                continue
+            if damage_code:
+                seen_damage_codes.add(damage_code)
+
+            client_id = _first_non_empty(
+                raw,
+                ["id", "id_incidente", "incidente_id", "numero_incidente", "codigo"],
+            )
 
             rows.append(
                 {
-                    "id": _first_non_empty(
-                        raw,
-                        ["id", "id_incidente", "incidente_id", "numero_incidente", "codigo"],
-                    )
-                    if _first_non_empty(
-                        raw,
-                        ["id", "id_incidente", "incidente_id", "numero_incidente", "codigo"],
-                    )
-                    != "-"
-                    else f"REG-{index}",
+                    "id": client_id if client_id != "-" else f"REG-{index}",
                     "cliente": _first_non_empty(
                         raw,
                         ["cliente", "nombre_cliente", "abonado", "usuario", "nombre", "razon_social"],
@@ -75,6 +85,7 @@ class IncidentService:
                         raw,
                         ["servicio", "tipo_servicio", "incidencia", "descripcion", "motivo"],
                     ),
+                    "danio": damage_code,
                     "direccion": _first_non_empty(
                         raw,
                         ["direccion", "direccion_cliente", "domicilio", "ubicacion", "direccion_servicio"],
@@ -144,6 +155,71 @@ class IncidentService:
 
         return {
             "fecha_registro": fecha_registro,
+            "estado_mapa": map_state,
+            "umbral_llamadas": active_threshold,
+            "total_sectores": int(summary.get("total_sectores", 0)),
+            "total_llamadas": total_calls,
+            "llamadas_por_sector": points,
+        }
+
+    def get_heatmap_state_by_month(
+        self,
+        year_month: str,
+        mode: str = "auto",
+        threshold: int | None = None,
+    ) -> dict[str, object]:
+        """Obtiene estado del mapa de calor para un mes completo (formato: YYYY-MM)"""
+        summary = self.repository.get_incidents_summary_by_month(year_month)
+        total_calls = int(summary.get("total_incidentes", 0))
+        active_threshold = max(1, threshold or self.heatmap_call_threshold)
+        map_state = self._resolve_heatmap_state(mode=mode, total_calls=total_calls, threshold=active_threshold)
+
+        points = []
+        for item in summary.get("incidentes_por_sector", []):
+            calls = int(item.get("total_incidentes", 0))
+            points.append(
+                {
+                    "sector_operativo": item.get("sector_operativo", "-"),
+                    "total_llamadas": calls,
+                    "intensidad": self._resolve_heat_intensity(calls=calls, map_state=map_state),
+                }
+            )
+
+        return {
+            "fecha_registro": year_month,
+            "estado_mapa": map_state,
+            "umbral_llamadas": active_threshold,
+            "total_sectores": int(summary.get("total_sectores", 0)),
+            "total_llamadas": total_calls,
+            "llamadas_por_sector": points,
+        }
+
+    def get_heatmap_state_by_date_range(
+        self,
+        fecha_inicio: str,
+        fecha_fin: str,
+        mode: str = "auto",
+        threshold: int | None = None,
+    ) -> dict[str, object]:
+        """Obtiene estado del mapa de calor para un rango de fechas"""
+        summary = self.repository.get_incidents_summary_by_date_range(fecha_inicio, fecha_fin)
+        total_calls = int(summary.get("total_incidentes", 0))
+        active_threshold = max(1, threshold or self.heatmap_call_threshold)
+        map_state = self._resolve_heatmap_state(mode=mode, total_calls=total_calls, threshold=active_threshold)
+
+        points = []
+        for item in summary.get("incidentes_por_sector", []):
+            calls = int(item.get("total_incidentes", 0))
+            points.append(
+                {
+                    "sector_operativo": item.get("sector_operativo", "-"),
+                    "total_llamadas": calls,
+                    "intensidad": self._resolve_heat_intensity(calls=calls, map_state=map_state),
+                }
+            )
+
+        return {
+            "fecha_registro": f"{fecha_inicio} a {fecha_fin}",
             "estado_mapa": map_state,
             "umbral_llamadas": active_threshold,
             "total_sectores": int(summary.get("total_sectores", 0)),

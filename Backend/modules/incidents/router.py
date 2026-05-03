@@ -64,3 +64,42 @@ def get_heatmap_state(
 
     return HeatmapStateResponse(**result)
 
+
+@router.get("/heatmap-mes", response_model=HeatmapStateResponse)
+def get_heatmap_month(
+    year_month: str = Query(..., description="Mes a consultar en formato YYYY-MM (ej: 2026-05)"),
+    mode: str = Query(default="auto", description="auto | normal | critical"),
+    threshold: int | None = Query(default=None, ge=1, le=100000, description="Umbral de llamadas"),
+    service: IncidentService = Depends(get_incident_service),
+) -> HeatmapStateResponse:
+    """Obtiene el mapa de calor para un mes completo"""
+    try:
+        result = service.get_heatmap_state_by_month(year_month=year_month, mode=mode, threshold=threshold)
+    except FileNotFoundError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+    except Exception as error:
+        raise HTTPException(status_code=500, detail=f"No se pudo procesar el mapa de calor del mes: {error}") from error
+
+    return HeatmapStateResponse(**result)
+
+
+@router.get("/heatmap-rango", response_model=HeatmapStateResponse)
+def get_heatmap_range(
+    fecha_desde: str = Query(..., description="Fecha inicial del rango (YYYY-MM-DD o similar)"),
+    fecha_hasta: str = Query(..., description="Fecha final del rango (YYYY-MM-DD o similar)"),
+    mode: str = Query(default="auto", description="auto | normal | critical"),
+    threshold: int | None = Query(default=None, ge=1, le=100000, description="Umbral de llamadas"),
+    service: IncidentService = Depends(get_incident_service),
+) -> HeatmapStateResponse:
+    """Obtiene el mapa de calor para un rango de fechas"""
+    try:
+        result = service.get_heatmap_state_by_date_range(
+            fecha_inicio=fecha_desde, fecha_fin=fecha_hasta, mode=mode, threshold=threshold
+        )
+    except FileNotFoundError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+    except Exception as error:
+        raise HTTPException(status_code=500, detail=f"No se pudo procesar el mapa de calor del rango: {error}") from error
+
+    return HeatmapStateResponse(**result)
+

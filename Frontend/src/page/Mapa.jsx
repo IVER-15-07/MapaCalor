@@ -1,119 +1,146 @@
-// Mapa.jsx
 import React, { useEffect, useMemo, useState } from 'react'
 import { historialService } from '../api/incidencias/Historial'
+import {getTodayISO, mapSectorNamesToPoints,} from '../components/mapa/mapUtils'
 
-// Importaciones extraidas
-import { 
-  getTodayISO, getRandomInt, formatElapsed, mapSectorNamesToPoints, 
-  buildElastixSectorSummary, ELASTIX_FEED_INTERVAL_MS, 
-  CRITICAL_THRESHOLD_DEFAULT, zoneData 
-} from '../components/mapa/mapUtils'
 
-// Sub-Componentes
-import { MapHeader } from '../components/mapa/MapHeader'
+
+import { MapHeader } from '../components/mapa/MapHeaderNew'
 import { MapDisplay } from '../components/mapa/MapDisplay'
 import { MapSidebar } from '../components/mapa/MapSidebar'
 
 const Mapa = () => {
-  const todayISO = useMemo(() => getTodayISO(), [])
+  
   const [selectedDate, setSelectedDate] = useState(getTodayISO())
-  const [smarflexPoints, setSmarflexPoints] = useState([])
+  const [activePoints, setActivePoints] = useState([])
   const [backendSectorCount, setBackendSectorCount] = useState(0)
   const [backendIncidentCount, setBackendIncidentCount] = useState(0)
-  const [elastixEnabled, setElastixEnabled] = useState(true)
-  const [criticalThreshold, setCriticalThreshold] = useState(CRITICAL_THRESHOLD_DEFAULT)
-  const [concurrentCalls, setConcurrentCalls] = useState(0)
-  const [elastixCalls, setElastixCalls] = useState([])
-  const [criticalSince, setCriticalSince] = useState(null)
-  const [mapState, setMapState] = useState('normal')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [selectedPoint, setSelectedPoint] = useState(null)
   const [zoom, setZoom] = useState(12)
-  const isRealtimeDate = selectedDate === todayISO
 
-  // Effect: Cargar historial Smarflex
-  useEffect(() => {
-    const loadSectors = async () => {
-      if (!selectedDate) { setSmarflexPoints([]); return; }
-      setLoading(true); setError('')
-      try {
-        const response = await historialService.getHeatmapState({ fechaRegistro: selectedDate, mode: 'normal' })
-        const llamadasPorSector = response.llamadas_por_sector || []
-        setBackendSectorCount(response.total_sectores || llamadasPorSector.length)
-        setBackendIncidentCount(response.total_llamadas || 0)
-        setSmarflexPoints(mapSectorNamesToPoints(llamadasPorSector))
-        setSelectedPoint(null)
-      } catch (requestError) {
-        setBackendSectorCount(0); setBackendIncidentCount(0); setSmarflexPoints([])
-        setError(requestError.message || 'No se pudo cargar la información')
-      } finally { setLoading(false) }
+  // ── Función central de carga ────────────────────────────────
+  const loadSectors = async (dataResponse) => {
+    setLoading(false)
+    setError('')
+    setSelectedPoint(null)
+
+    try {
+      const llamadasPorSector = dataResponse.llamadas_por_sector || []
+      const points = mapSectorNamesToPoints(llamadasPorSector)
+      setBackendSectorCount(dataResponse.total_sectores || llamadasPorSector.length)
+      setBackendIncidentCount(dataResponse.total_llamadas || 0)
+      setActivePoints(points)
+    } catch (err) {
+      setBackendSectorCount(0)
+      setBackendIncidentCount(0)
+      setActivePoints([])
+      setError(err.message || 'No se pudo cargar la información')
+    } finally {
+      setLoading(false)
     }
-    loadSectors()
-  }, [selectedDate])
+  }
 
-  // Effect: Simulador Elastix
+  // Carga inicial con el día de hoy
   useEffect(() => {
-    if (!elastixEnabled || !isRealtimeDate) { setConcurrentCalls(0); return; }
-    const timer = setInterval(() => {
-      const generatedCalls = Array.from({ length: getRandomInt(1, 4) }).map((_, index) => {
-        const zone = zoneData[getRandomInt(0, zoneData.length - 1)]
-        return { id: `ELX-${Date.now()}-${index}`, sector_operativo: zone.name, timestamp: Date.now() }
-      })
-      setElastixCalls((prev) => [...generatedCalls, ...prev].slice(0, 1200))
-      setConcurrentCalls((prev) => {
-        const spike = Math.random() < 0.22
-        const delta = spike ? getRandomInt(4, 11) : getRandomInt(-3, 4)
-        return Math.max(0, Math.min(200, prev + delta))
-      })
-    }, ELASTIX_FEED_INTERVAL_MS)
-    return () => clearInterval(timer)
-  }, [elastixEnabled, isRealtimeDate])
+    const initialize = async () => {
+      setLoading(true)
+      try {
+        const data = await historialService.getHeatmapState({ fechaRegistro: getTodayISO(), mode: 'normal' })
+        loadSectors(data)
+      } catch (err) {
+        setError(err.message || 'No se pudo cargar la información')
+        setLoading(false)
+      }
+    }
+    initialize()
+  }, []) 
 
-  // Effect: Umbrales Críticos
-  useEffect(() => {
-    const isCritical = elastixEnabled && isRealtimeDate && concurrentCalls >= criticalThreshold
-    setMapState(isCritical ? 'critical' : 'normal')
-    setCriticalSince((prev) => isCritical && !prev ? Date.now() : !isCritical ? null : prev)
-  }, [concurrentCalls, criticalThreshold, elastixEnabled, isRealtimeDate])
+  // ── Handlers para el botón Consulta ────────────────────────
+  const handleConsultaDay = async (date) => {
+    setSelectedDate(date)
+    setLoading(true)
+    try {
+      const data = await historialService.getHeatmapState({ fechaRegistro: date, mode: 'normal' })
+      loadSectors(data)
+    } catch (err) {
+      setError(err.message || 'Error al consultar la fecha')
+      setLoading(false)
+    }
+  }
 
-  // Variables Calculadas
-  const elastixSummary = useMemo(() => (isRealtimeDate ? buildElastixSectorSummary(elastixCalls) : []), [elastixCalls, isRealtimeDate])
-  const elastixPoints = useMemo(() => mapSectorNamesToPoints(elastixSummary), [elastixSummary])
-  const sourceMode = mapState === 'critical' && isRealtimeDate ? 'elastix' : 'smarflex'
-  const activePoints = useMemo(() => (sourceMode === 'elastix' ? elastixPoints : smarflexPoints), [sourceMode, elastixPoints, smarflexPoints])
-  
-  const totalIncidents = activePoints.reduce((sum, point) => sum + point.incidents, 0)
-  const metricLabel = sourceMode === 'elastix' ? 'llamadas' : 'incidencias'
-  const crisisTimer = mapState === 'critical' && criticalSince ? formatElapsed(Date.now() - criticalSince) : '00:00s'
+  const handleConsultaMonth = async (yearMonth) => {
+    setSelectedDate(yearMonth)
+    setLoading(true)
+    try {
+      const data = await historialService.getSectorByMonth(yearMonth)
+      loadSectors(data)
+    } catch (err) {
+      setError(err.message || 'Error al consultar el mes')
+      setLoading(false)
+    }
+  }
+
+  const handleConsultaRange = async (from, to) => {
+    setSelectedDate(`${from} → ${to}`)
+    setLoading(true)
+    try {
+      const data = await historialService.getSectorsByRange(from, to)
+      loadSectors(data)
+    } catch (err) {
+      setError(err.message || 'Error al consultar el rango')
+      setLoading(false)
+    }
+  }
+
+  // ── Métricas derivadas ──────────────────────────────────────
+  const totalIncidents = useMemo(
+    () => activePoints.reduce((sum, p) => sum + p.incidents, 0),
+    [activePoints]
+  )
+  const sectorCount = activePoints.length
 
   return (
     <div className="flex h-full flex-col gap-6 xl:flex-row xl:items-stretch">
+
+      {/* ── COLUMNA IZQUIERDA: mapa + header ── */}
       <div className="flex min-w-0 flex-[1.7] flex-col">
-        <MapHeader 
-          zoom={zoom} setZoom={setZoom} mapState={mapState} sourceMode={sourceMode} 
-          isRealtimeDate={isRealtimeDate} crisisTimer={crisisTimer} selectedDate={selectedDate} 
-          setSelectedDate={setSelectedDate} concurrentCalls={concurrentCalls} 
-          criticalThreshold={criticalThreshold} setCriticalThreshold={setCriticalThreshold} 
-          elastixEnabled={elastixEnabled} setElastixEnabled={setElastixEnabled} 
-          loading={loading} error={error} backendSectorCount={backendSectorCount} 
-          backendIncidentCount={backendIncidentCount} elastixSummaryLength={elastixSummary.length}
-          sectorCount={activePoints.length} totalIncidents={totalIncidents} metricLabel={metricLabel}
+        <MapHeader
+          zoom={zoom}
+          setZoom={setZoom}
+          loading={loading}
+          error={error}
+          backendSectorCount={backendSectorCount}
+          backendIncidentCount={backendIncidentCount}
+          onConsultaDay={handleConsultaDay}
+          onConsultaMonth={handleConsultaMonth}
+          onConsultaRange={handleConsultaRange}
         />
-        
-        <MapDisplay 
-          zoom={zoom} selectedPoint={selectedPoint} activePoints={activePoints} 
-          handlePointSelect={setSelectedPoint} metricLabelTitle={sourceMode === 'elastix' ? 'Llamadas' : 'Incidencias'}
-          sectorCount={activePoints.length} totalIncidents={totalIncidents} metricLabel={metricLabel} sourceMode={sourceMode}
+
+        <MapDisplay
+          zoom={zoom}
+          selectedPoint={selectedPoint}
+          activePoints={activePoints}
+          handlePointSelect={setSelectedPoint}
+          metricLabelTitle="Incidencias"
+          sectorCount={sectorCount}
+          totalIncidents={totalIncidents}
+          metricLabel="incidencias"
+          sourceMode="smarflex"
         />
       </div>
 
-      <MapSidebar 
-        sectorCount={activePoints.length} selectedDate={selectedDate} 
-        recentElastixCalls={elastixCalls.slice(0, 6)} selectedPoint={selectedPoint} 
-        setSelectedPoint={setSelectedPoint} metricLabelTitle={sourceMode === 'elastix' ? 'Llamadas' : 'Incidencias'} 
-        activePoints={activePoints} handlePointSelect={setSelectedPoint} 
+      {/* ── PANEL DERECHO: sidebar con lista ── */}
+      <MapSidebar
+        sectorCount={sectorCount}
+        selectedDate={selectedDate}
+        selectedPoint={selectedPoint}
+        setSelectedPoint={setSelectedPoint}
+        metricLabelTitle="Incidencias"
+        activePoints={activePoints}
+        handlePointSelect={setSelectedPoint}
       />
+
     </div>
   )
 }

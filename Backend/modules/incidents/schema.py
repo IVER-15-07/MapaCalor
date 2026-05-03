@@ -19,6 +19,7 @@ class ClientIncidentRecord(BaseModel):
 	cliente: str
 	producto: str
 	servicio: str
+	danio: str
 	direccion: str
 	sector: str
 	fecha: str

@@ -41,7 +41,35 @@ def _normalize_text(value: object) -> str:
 	return str(value).strip().lower()
 
 
-def _parse_datetime(value: object) -> pd.Timestamp | pd.NaT:
+def _extract_damage_code(record: dict) -> str:
+	candidate_keys = (
+		"codigo_danio",
+		"codigo_daño",
+		"codigo_de_danio",
+		"codigo_de_daño",
+		"codigo",
+		"danio",
+		"daño",
+		"id_danio",
+		"id_daño",
+	)
+
+	for key in candidate_keys:
+		code_value = _normalize_text(record.get(key))
+		if code_value:
+			return code_value
+
+	for key, value in record.items():
+		normalized_key = _normalize_column_name(key)
+		if "dan" in normalized_key or "dañ" in normalized_key or "codigo" in normalized_key:
+			code_value = _normalize_text(value)
+			if code_value:
+				return code_value
+
+	return ""
+
+
+def _parse_datetime(value: object):
 	text_value = str(value).strip()
 	if not text_value:
 		return pd.NaT
@@ -143,12 +171,20 @@ class ExcelIncidentRepository:
 	def to_records(self, force: bool = False) -> list[IncidentRecord]:
 		frame = self.load(force=force)
 		records = frame.to_dict(orient="records")
-		return [
-			IncidentRecord.model_validate(
-				{key: _normalize_value(value) for key, value in record.items()}
-			)
-			for record in records
-		]
+		seen_damage_codes: set[str] = set()
+		unique_records: list[IncidentRecord] = []
+
+		for record in records:
+			normalized_record = {key: _normalize_value(value) for key, value in record.items()}
+			damage_code = _extract_damage_code(normalized_record)
+			if damage_code and damage_code in seen_damage_codes:
+				continue
+			if damage_code:
+				seen_damage_codes.add(damage_code)
+
+			unique_records.append(IncidentRecord.model_validate(normalized_record))
+
+		return unique_records
 
 	def stats(self) -> dict[str, object]:
 		frame = self.load()
@@ -256,6 +292,109 @@ class ExcelIncidentRepository:
 			sector_key = sector_value.lower()
 			canonical_name.setdefault(sector_key, sector_value)
 			counts_by_sector[sector_key] = counts_by_sector.get(sector_key, 0) + 1
+
+		ordered_keys = sorted(counts_by_sector.keys(), key=lambda key: canonical_name[key].lower())
+		incidentes_por_sector = [
+			{
+				"sector_operativo": canonical_name[key],
+				"total_incidentes": counts_by_sector[key],
+			}
+			for key in ordered_keys
+		]
+
+		total_incidentes = sum(item["total_incidentes"] for item in incidentes_por_sector)
+		return {
+			"sectores": [item["sector_operativo"] for item in incidentes_por_sector],
+			"incidentes_por_sector": incidentes_por_sector,
+			"total_sectores": len(incidentes_por_sector),
+			"total_incidentes": total_incidentes,
+		}
+
+	def get_incidents_summary_by_month(self, year_month: str) -> dict[str, object]:
+		"""Obtiene resumen de incidencias para un mes completo (formato: YYYY-MM)"""
+		# year_month esperado en formato "2026-05" (YYYY-MM)
+		try:
+			year_part, month_part = year_month.split('-')
+			year = int(year_part)
+			month = int(month_part)
+		except (ValueError, IndexError):
+			return {
+				"sectores": [],
+				"incidentes_por_sector": [],
+				"total_sectores": 0,
+				"total_incidentes": 0,
+			}
+
+		counts_by_sector: dict[str, int] = {}
+		canonical_name: dict[str, str] = {}
+
+		for record in self.to_records():
+			try:
+				parsed_date = _parse_datetime(record.fecha_registro)
+				if pd.notna(parsed_date) and parsed_date.year == year and parsed_date.month == month:
+					sector_value = (record.sector_operativo or "").strip()
+					if not sector_value:
+						continue
+
+					sector_key = sector_value.lower()
+					canonical_name.setdefault(sector_key, sector_value)
+					counts_by_sector[sector_key] = counts_by_sector.get(sector_key, 0) + 1
+			except Exception:
+				continue
+
+		ordered_keys = sorted(counts_by_sector.keys(), key=lambda key: canonical_name[key].lower())
+		incidentes_por_sector = [
+			{
+				"sector_operativo": canonical_name[key],
+				"total_incidentes": counts_by_sector[key],
+			}
+			for key in ordered_keys
+		]
+
+		total_incidentes = sum(item["total_incidentes"] for item in incidentes_por_sector)
+		return {
+			"sectores": [item["sector_operativo"] for item in incidentes_por_sector],
+			"incidentes_por_sector": incidentes_por_sector,
+			"total_sectores": len(incidentes_por_sector),
+			"total_incidentes": total_incidentes,
+		}
+
+	def get_incidents_summary_by_date_range(self, fecha_inicio: str, fecha_fin: str) -> dict[str, object]:
+		"""Obtiene resumen de incidencias para un rango de fechas"""
+		try:
+			date_inicio = _parse_datetime(fecha_inicio)
+			date_fin = _parse_datetime(fecha_fin)
+			if pd.isna(date_inicio) or pd.isna(date_fin):
+				return {
+					"sectores": [],
+					"incidentes_por_sector": [],
+					"total_sectores": 0,
+					"total_incidentes": 0,
+				}
+		except Exception:
+			return {
+				"sectores": [],
+				"incidentes_por_sector": [],
+				"total_sectores": 0,
+				"total_incidentes": 0,
+			}
+
+		counts_by_sector: dict[str, int] = {}
+		canonical_name: dict[str, str] = {}
+
+		for record in self.to_records():
+			try:
+				parsed_date = _parse_datetime(record.fecha_registro)
+				if pd.notna(parsed_date) and date_inicio <= parsed_date <= date_fin:
+					sector_value = (record.sector_operativo or "").strip()
+					if not sector_value:
+						continue
+
+					sector_key = sector_value.lower()
+					canonical_name.setdefault(sector_key, sector_value)
+					counts_by_sector[sector_key] = counts_by_sector.get(sector_key, 0) + 1
+			except Exception:
+				continue
 
 		ordered_keys = sorted(counts_by_sector.keys(), key=lambda key: canonical_name[key].lower())
 		incidentes_por_sector = [

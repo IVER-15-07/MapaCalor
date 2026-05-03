@@ -1,56 +1,66 @@
 // MapSidebar.jsx
 import React from 'react'
-import { PhoneCall, MapPin, X } from 'lucide-react'
+// Añadido el ícono Calendar
+import { PhoneCall, MapPin, X, AlertTriangle, Activity, Calendar } from 'lucide-react'
 import { cn } from '../../lib/Utils'
 import { intensityConfig } from './mapUtils'
+import Card from '../ui/Card'
 
-export const MapSidebar = ({ sectorCount, selectedDate, recentElastixCalls, selectedPoint, setSelectedPoint, metricLabelTitle, activePoints, handlePointSelect }) => {
+export const MapSidebar = ({ 
+  sectorCount, 
+  selectedDate, 
+
+  selectedPoint, 
+   
+  metricLabelTitle, 
+  activePoints, 
+  handlePointSelect,
+
+  currentCalls,
+  threshold,
+  mapState
+}) => {
+  const isCritical = mapState === 'critical' || currentCalls >= threshold
+
+  // 🔴 CORREGIDO: Valores asignados correctamente a sus títulos
+  const smarflexStats = [
+    { 
+      title: 'Sectores Afectados', 
+      value: sectorCount,           // Antes decía incidentsToday
+      icon: MapPin, 
+      color: 'text-orange-500' 
+    },
+    { 
+      title: 'Fecha de Consulta', 
+      value: selectedDate,          // Antes decía sectorCount
+      icon: Calendar,               // Cambiado a ícono de calendario
+      color: 'text-primary'         // Un color diferente (o puedes dejar orange-500)
+    }
+  ]
+
   return (
     <div className="relative z-10 flex w-full flex-col gap-4 xl:w-72">
+      {/* 📊 CARDS PRINCIPALES */}
       <div className="grid grid-cols-2 gap-3">
-        <div className="rounded-lg border border-border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Sectores activos</p>
-          <p className="text-2xl font-semibold text-foreground">{sectorCount}</p>
-        </div>
-        <div className="rounded-lg border border-border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Fecha consultada</p>
-          <p className="text-sm font-semibold text-destructive">{selectedDate || '-'}</p>
-        </div>
+        {smarflexStats.map((stat) => (
+          <Card
+            key={stat.title}
+            title={stat.title}
+            value={stat.value}
+            icon={stat.icon}
+            color={stat.color}
+            size="sm"
+            showIcon={true}
+            className="bg-card/50"
+          />
+        ))}
       </div>
 
       <div className="overflow-hidden rounded-xl border border-border bg-card">
-        <div className="flex items-center justify-between border-b border-border p-4">
-          <h3 className="font-semibold text-card-foreground">Llamadas Elastix en vivo</h3>
-          <span className="text-xs text-muted-foreground">{recentElastixCalls.length} recientes</span>
+        <div className="border-b border-border p-4">
+          <h3 className="font-semibold text-card-foreground">Detalles del Sector</h3>
         </div>
-        <div className="divide-y divide-border">
-          {recentElastixCalls.length > 0 ? (
-            recentElastixCalls.map((call) => (
-              <div key={call.id} className="flex items-center justify-between px-4 py-3">
-                <div className="flex items-center gap-2">
-                  <PhoneCall className="h-4 w-4 text-primary" />
-                  <span className="text-sm text-card-foreground">{call.sector_operativo}</span>
-                </div>
-                <span className="text-xs text-muted-foreground">{new Date(call.timestamp).toLocaleTimeString()}</span>
-              </div>
-            ))
-          ) : (
-            <div className="p-4 text-sm text-muted-foreground">Esperando llamadas...</div>
-          )}
-        </div>
-      </div>
-
-      {selectedPoint ? (
-        <div className="rounded-xl border border-border bg-card shadow-lg">
-          <div className="flex items-center justify-between border-b border-border p-4">
-            <div className="flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-primary" />
-              <span className="font-semibold text-card-foreground">Detalle de sector</span>
-            </div>
-            <button onClick={() => setSelectedPoint(null)} className="rounded p-1 transition-colors hover:bg-secondary">
-              <X className="h-4 w-4 text-muted-foreground" />
-            </button>
-          </div>
+        {selectedPoint ? (
           <div className="space-y-4 p-4">
             <p className="text-lg font-semibold text-card-foreground">{selectedPoint.zone}</p>
             <div className="grid grid-cols-2 gap-3">
@@ -65,23 +75,22 @@ export const MapSidebar = ({ sectorCount, selectedDate, recentElastixCalls, sele
                 </p>
               </div>
             </div>
-            <button className="w-full rounded-lg bg-primary py-2 text-sm font-medium text-primary-foreground">Ver Detalles Operativos</button>
           </div>
-        </div>
-      ) : (
-        <div className="flex flex-1 flex-col items-center justify-center rounded-xl border border-border bg-card p-6 text-center">
-          <MapPin className="mb-4 h-12 w-12 text-muted-foreground/30" />
-          <p className="text-sm text-muted-foreground">Selecciona un punto en el mapa para analizar la zona.</p>
-        </div>
-      )}
+        ) : (
+          <div className="flex flex-col items-center justify-center p-6 text-center">
+            <MapPin className="mb-4 h-12 w-12 text-muted-foreground/30" />
+            <p className="text-sm text-muted-foreground">Selecciona un punto en el mapa para analizar la zona.</p>
+          </div>
+        )}
+      </div>
 
       <div className="flex-1 overflow-hidden rounded-xl border border-border bg-card">
         <div className="border-b border-border bg-muted/20 p-4">
-          <h3 className="font-semibold text-card-foreground">Sectores del día</h3>
+          <h3 className="font-semibold text-card-foreground">Sectores Afectados (Mayor a Menor)</h3>
         </div>
         <div className="flex h-75 flex-1 flex-col divide-y divide-border overflow-y-auto">
           {activePoints.length > 0 ? (
-            [...activePoints].sort((a, b) => a.zone.localeCompare(b.zone)).map((point) => (
+            [...activePoints].sort((a, b) => b.incidents - a.incidents).map((point) => (
               <button key={point.id} onClick={() => handlePointSelect(point)} className={cn('flex w-full items-center justify-between p-3 text-left transition-colors hover:bg-secondary/50', selectedPoint?.id === point.id && 'border-l-2 border-primary bg-secondary')}>
                 <div className="flex items-center gap-3">
                   <span className={cn('h-2 w-2 rounded-full', intensityConfig[point.intensity].twColor)} />

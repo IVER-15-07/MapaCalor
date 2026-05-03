@@ -123,6 +123,7 @@ const Clientes = () => {
                                 <th className="px-4 py-3 font-medium">Producto</th>
                                 <th className="px-4 py-3 font-medium">Servicio</th>
                                 <th className="px-4 py-3 font-medium">Dirección</th>
+                                <th className="px-4 py-3 font-medium">Daño</th>
                                 <th className="px-4 py-3 font-medium">Sector</th>
                                 <th className="px-4 py-3 font-medium">Fecha</th>
                             </tr>
@@ -134,6 +135,7 @@ const Clientes = () => {
                                     <td className="px-4 py-3 text-foreground">{row.producto}</td>
                                     <td className="px-4 py-3 text-foreground">{row.servicio}</td>
                                     <td className="px-4 py-3 text-muted-foreground">{row.direccion}</td>
+                                    <td className="px-4 py-3 text-muted-foreground">{row.danio}</td>
                                     <td className="px-4 py-3 text-muted-foreground">{row.sector}</td>
                                     <td className="px-4 py-3 text-muted-foreground">{row.fecha}</td>
                                 </tr>
