@@ -17,10 +17,13 @@ const Mapa = () => {
     handleConsultaMonth,
     handleConsultaRange
   } = useMapa()
+
+  //hola como estas 
   return (
     <div className="flex h-full flex-col gap-6 xl:flex-row xl:items-stretch">
 
       <div className="flex min-w-0 flex-[1.7] flex-col">
+      
         <MapHeader
           zoom={zoom}
           setZoom={setZoom}
