@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+
+  backend:
+    build:
+      context: ./Backend
+      dockerfile: Dockerfile
+    container_name: comteco_backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./Backend:/app
+      - /app/venv
+    env_file:
+      - ./Backend/.env
+    networks:
+      - comteco_network
+    restart: always
+
+  frontend:
+    build:
+      context: ./Frontend
+      dockerfile: Dockerfile
+    container_name: comteco_frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./Frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - comteco_network
+    restart: always
+
+networks:
+  comteco_network:
+    driver: bridge
