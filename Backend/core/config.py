@@ -1,33 +1,15 @@
-from dataclasses import dataclass, field
-from pathlib import Path
-import os
+from pydantic_settings import BaseSettings
 
+class Settings(BaseSettings):
+    DB_HOST: str
+    DB_PORT: int = 5432
+    DB_NAME: str
+    DB_USER: str
+    DB_PASSWORD: str
+    SECRET_KEY: str
+    ALLOWED_ORIGINS: str = "http://localhost:5173"
 
-def _parse_csv_env(name: str, default: str) -> list[str]:
-	raw_value = os.getenv(name, default)
-	values = [value.strip() for value in raw_value.split(",")]
-	return [value for value in values if value]
+    class Config:
+        env_file = ".env"
 
-
-def _parse_int_env(name: str, default: int) -> int:
-	raw_value = os.getenv(name)
-	if raw_value is None:
-		return default
-	try:
-		return int(raw_value)
-	except ValueError:
-		return default
-
-
-@dataclass(frozen=True)
-class Settings:
-	app_name: str = "COMTECO Excel API"
-	api_prefix: str = "/api"
-	incidents_excel_path: Path | None = Path("C:/Users/ASUS/Desktop/COMTECO/smarflex.xls")
-	incidents_excel_sheet_name: str | None = os.getenv("INCIDENTS_EXCEL_SHEET_NAME") or None
-	heatmap_call_threshold: int = _parse_int_env("HEATMAP_CALL_THRESHOLD", 30)
-	cors_origins: list[str] = field(default_factory=lambda: _parse_csv_env("CORS_ORIGINS", "http://localhost:5173"))
-
-
-def get_settings() -> Settings:
-	return Settings()
+settings = Settings()
