@@ -5,7 +5,7 @@ services:
   backend:
     build:
       context: ./Backend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     container_name: comteco_backend
     ports:
       - "8000:8000"
@@ -21,7 +21,7 @@ services:
   frontend:
     build:
       context: ./Frontend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     container_name: comteco_frontend
     ports:
       - "5173:5173"
