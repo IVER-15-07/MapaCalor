@@ -1,24 +1,27 @@
-// MapHeader.jsx - VERSIÓN HISTÓRICA CON BOTÓN CONSULTA
 import React, { useState, useEffect, useRef } from 'react'
 import { ZoomIn, ZoomOut, Layers, Loader2, Search } from 'lucide-react'
 
 export const MapHeader = ({
   zoom, setZoom, loading, error,
-  backendSectorCount, backendIncidentCount,
+  backendSectorCount = 0, backendIncidentCount = 0,
   onConsultaDay, onConsultaMonth, onConsultaRange
 }) => {
   const [showConsultaMenu, setShowConsultaMenu] = useState(false)
   const menuRef = useRef(null)
+
+  // Fecha por defecto de hoy
   const [daySelect, setDaySelect] = useState(new Date().toISOString().split('T')[0])
   const today = new Date()
   const initialMonth = String(today.getMonth() + 1).padStart(2, '0')
   const initialYear = today.getFullYear().toString()
+
   const [monthSelect, setMonthSelect] = useState(initialMonth)
   const [yearSelect, setYearSelect] = useState(initialYear)
   const [rangeFrom, setRangeFrom] = useState('')
   const [rangeTo, setRangeTo] = useState('')
   const [pendingQuery, setPendingQuery] = useState(false)
 
+  // Acciones de Consulta
   const handleConsultaDay = () => {
     if (onConsultaDay) {
       onConsultaDay(daySelect)
@@ -30,6 +33,7 @@ export const MapHeader = ({
 
   const handleConsultaMonth = () => {
     if (onConsultaMonth) {
+      // Envía "YYYY-MM" al hook useMapa para que consulte el backend
       onConsultaMonth(`${yearSelect}-${monthSelect}`)
       setPendingQuery(true)
     } else {
@@ -48,13 +52,13 @@ export const MapHeader = ({
     }
   }
 
-  // Cerrar el menú cuando la consulta pendiente haya terminado (loading -> false)
+  // Cerrar el menú automáticamente solo cuando termine la carga (loading -> false)
   useEffect(() => {
     if (pendingQuery && !loading) {
       const timeout = setTimeout(() => {
         setShowConsultaMenu(false)
         setPendingQuery(false)
-      }, 0)
+      }, 100)
       return () => clearTimeout(timeout)
     }
   }, [pendingQuery, loading])
@@ -84,7 +88,7 @@ export const MapHeader = ({
           </p>
         </div>
         
-        {/* Controles de Zoom y Capas + Botón Consulta */}
+        {/* Controles de Zoom, Capas y Botón Consulta */}
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-1 rounded-lg border border-border bg-card">
             <button onClick={() => setZoom((prev) => Math.max(8, prev - 1))} className="rounded-l-lg p-2 hover:bg-secondary">
@@ -95,11 +99,12 @@ export const MapHeader = ({
               <ZoomIn className="h-4 w-4 text-muted-foreground" />
             </button>
           </div>
+
           <button className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">
             <Layers className="h-4 w-4" /> Capas
           </button>
 
-          {/* Botón Consulta Principal */}
+          {/* Botón Consulta Principal con Menú Desplegable */}
           <div className="relative" ref={menuRef}>
             <button 
               onClick={() => setShowConsultaMenu(!showConsultaMenu)}
@@ -108,10 +113,11 @@ export const MapHeader = ({
               <Search className="h-4 w-4" /> Consulta
             </button>
 
-            {/* Dropdown Menu */}
+            {/* Dropdown Menu (Z-index z-[1000] corregido) */}
             {showConsultaMenu && (
-             <div className="absolute right-0 top-full mt-2 w-80 rounded-xl border border-border bg-zinc-950 shadow-[0_10px_40px_rgba(0,0,0,0.8)] z-1000">
+              <div className="absolute right-0 top-full mt-2 w-80 rounded-xl border border-border bg-zinc-950 shadow-[0_10px_40px_rgba(0,0,0,0.8)] z-[1000]">
                 <div className="p-4 space-y-4">
+                  
                   {/* Opción 1: Día Específico */}
                   <div className="border-b border-border pb-4">
                     <h3 className="text-sm font-semibold text-card-foreground mb-3">Día Específico</h3>
@@ -135,43 +141,43 @@ export const MapHeader = ({
                   {/* Opción 2: Mes Completo */}
                   <div className="border-b border-border pb-4">
                     <h3 className="text-sm font-semibold text-card-foreground mb-3">Mes Completo</h3>
-                      <div className="flex gap-2">
-                        <select
-                          value={monthSelect}
-                          onChange={(e) => setMonthSelect(e.target.value)}
-                          className="rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                        >
-                          <option value="01">Enero</option>
-                          <option value="02">Febrero</option>
-                          <option value="03">Marzo</option>
-                          <option value="04">Abril</option>
-                          <option value="05">Mayo</option>
-                          <option value="06">Junio</option>
-                          <option value="07">Julio</option>
-                          <option value="08">Agosto</option>
-                          <option value="09">Septiembre</option>
-                          <option value="10">Octubre</option>
-                          <option value="11">Noviembre</option>
-                          <option value="12">Diciembre</option>
-                        </select>
+                    <div className="flex gap-2">
+                      <select
+                        value={monthSelect}
+                        onChange={(e) => setMonthSelect(e.target.value)}
+                        className="rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                      >
+                        <option value="01">Enero</option>
+                        <option value="02">Febrero</option>
+                        <option value="03">Marzo</option>
+                        <option value="04">Abril</option>
+                        <option value="05">Mayo</option>
+                        <option value="06">Junio</option>
+                        <option value="07">Julio</option>
+                        <option value="08">Agosto</option>
+                        <option value="09">Septiembre</option>
+                        <option value="10">Octubre</option>
+                        <option value="11">Noviembre</option>
+                        <option value="12">Diciembre</option>
+                      </select>
 
-                        <input
-                          type="number"
-                          min="2000"
-                          max="2100"
-                          value={yearSelect}
-                          onChange={(e) => setYearSelect(e.target.value)}
-                          className="w-24 rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                        />
+                      <input
+                        type="number"
+                        min="2000"
+                        max="2100"
+                        value={yearSelect}
+                        onChange={(e) => setYearSelect(e.target.value)}
+                        className="w-24 rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
 
-                        <button
-                          onClick={handleConsultaMonth}
-                          disabled={loading}
-                          className="rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-                        >
-                          Consultar
-                        </button>
-                      </div>
+                      <button
+                        onClick={handleConsultaMonth}
+                        disabled={loading}
+                        className="rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                      >
+                        Consultar
+                      </button>
+                    </div>
                   </div>
 
                   {/* Opción 3: Rango de Fechas */}
@@ -201,6 +207,7 @@ export const MapHeader = ({
                       </button>
                     </div>
                   </div>
+
                 </div>
               </div>
             )}
@@ -211,7 +218,7 @@ export const MapHeader = ({
       {/* Información de Carga y Resultados */}
       <div className="mb-4 flex flex-col gap-2 rounded-xl border border-border bg-card p-3">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          {loading && pendingQuery && (
+          {loading && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" /> Cargando datos...
             </div>
@@ -233,3 +240,5 @@ export const MapHeader = ({
     </>
   )
 }
+
+export default MapHeader

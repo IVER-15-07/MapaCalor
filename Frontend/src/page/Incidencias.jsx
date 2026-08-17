@@ -1,4 +1,3 @@
-
 import { Search, Filter, Plus, MapPin, Clock, Zap, Droplets, Wifi, AlertTriangle, X } from 'lucide-react'
 
 import { useIncidents } from '../hooks/useIncidentes/useIncidents'
@@ -46,7 +45,7 @@ const Incidencias = () => {
         <table className="min-w-225px w-full">
           <thead>
             <tr className="border-b border-border bg-secondary/50">
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase text-muted-foreground">Cliente</th>
+              <th className="px-4 py-3 text-left text-xs font-medium uppercase text-muted-foreground">Segmento</th>
               <th className="px-4 py-3 text-left text-xs font-medium uppercase text-muted-foreground">Producto</th>
               <th className="px-4 py-3 text-left text-xs font-medium uppercase text-muted-foreground">Servicio</th>
               <th className="px-4 py-3 text-left text-xs font-medium uppercase text-muted-foreground">Dirección</th>
@@ -69,38 +68,49 @@ const Incidencias = () => {
                 </td>
               </tr>
             ) : (
-              filteredRows.map((r) => (
-                <tr key={r.id} className="hover:bg-secondary/30">
+              filteredRows.map((r, idx) => (
+                <tr key={r.id || idx} className="hover:bg-secondary/30">
                   <td className="px-4 py-4">
-                    <span className="text-sm font-medium text-card-foreground">{r.cliente}</span>
+                    <span className="text-sm font-medium text-card-foreground">
+                      {r.cliente || r.segmento || '-'}
+                    </span>
                   </td>
 
                   <td className="px-4 py-4">
-                    <span className="text-sm text-card-foreground">{r.producto}</span>
+                    <span className="text-sm text-card-foreground">
+                      {r.producto || '-'}
+                    </span>
                   </td>
 
                   <td className="px-4 py-4">
-                    <span className="text-sm text-muted-foreground">{r.servicio}</span>
+                    <span className="text-sm text-muted-foreground">
+                      {r.servicio || '-'}
+                    </span>
                   </td>
 
                   <td className="px-4 py-4">
                     <div className="flex items-center gap-1 text-sm text-muted-foreground">
                       <MapPin className="h-3 w-3 shrink-0" />
-                      {r.direccion}
+                      {r.direccion || r.punto_venta || '-'}
                     </div>
                   </td>
 
                   <td className="px-4 py-4">
-                    <span className="text-sm text-muted-foreground">{r.danio}</span>
+                    <span className="text-sm text-muted-foreground">
+                      {r.dano || r.danio || '-'}
+                    </span>
                   </td>
 
                   <td className="px-4 py-4">
-                    <span className="text-sm text-muted-foreground">{r.sector}</span>
+                    <span className="text-sm text-muted-foreground">
+                      {r.sector_operativo || r.sector || '-'}
+                    </span>
                   </td>
+
                   <td className="px-4 py-4">
                     <div className="flex items-center gap-1 text-sm text-muted-foreground">
                       <Clock className="h-3 w-3 shrink-0" />
-                      {r.fecha}
+                      {r.fecha_registro ? String(r.fecha_registro).split('T')[0] : (r.fecha || '-')}
                     </div>
                   </td>
                 </tr>

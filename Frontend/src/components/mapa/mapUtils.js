@@ -1,4 +1,3 @@
-// mapUtils.js
 export const COCHA_CENTER = [-17.3895, -66.1568]
 export const ELASTIX_FEED_INTERVAL_MS = 1200
 export const ELASTIX_RECENT_WINDOW_MS = 10 * 60 * 1000
@@ -92,14 +91,33 @@ export const formatElapsed = (milliseconds) => {
   return `${minutes}:${seconds}s`
 }
 
+// 🟢 MAPEO OPTIMIZADO Y FLEXIBLE A CUALQUIER ESTRUCTURA DEL BACKEND
 export const mapSectorNamesToPoints = (llamadasPorSector) => {
-  const countBySector = new Map(
-    (llamadasPorSector || []).map((item) => [
-      normalizeSectorKey(item.sector_operativo),
-      { llamadas: Number(item.total_llamadas || 0), intensidad: item.intensidad || 'low' },
-    ])
-  )
+  const countBySector = new Map()
 
+  ;(llamadasPorSector || []).forEach((item) => {
+    // 1. Lee tanto sector_operativo como sector
+    const rawSectorName = item.sector_operativo || item.sector || ''
+    const key = normalizeSectorKey(rawSectorName)
+
+    // 2. Lee tanto total_llamadas como llamadas o incidents
+    const llamadas = Number(item.total_llamadas || item.llamadas || item.incidents || 0)
+
+    // 3. Si no viene intensidad, se calcula automáticamente según la cantidad
+    let intensidad = item.intensidad
+    if (!intensidad) {
+      if (llamadas >= 15) intensidad = 'critical'
+      else if (llamadas >= 8) intensidad = 'high'
+      else if (llamadas >= 3) intensidad = 'medium'
+      else intensidad = 'low'
+    }
+
+    if (key) {
+      countBySector.set(key, { llamadas, intensidad })
+    }
+  })
+
+  // Retorna únicamente los sectores que hagan match con la lista geográfica de Cochabamba
   return zoneData
     .filter((data) => countBySector.has(normalizeSectorKey(data.name)))
     .map((data, index) => {
@@ -109,7 +127,8 @@ export const mapSectorNamesToPoints = (llamadasPorSector) => {
 
       return {
         id: `${data.name}-${index}`,
-        lat, lng,
+        lat,
+        lng,
         intensity: countData.intensidad,
         zone: data.name,
         incidents: countData.llamadas,
@@ -125,7 +144,7 @@ export const buildElastixSectorSummary = (calls) => {
   calls
     .filter((call) => now - call.timestamp <= ELASTIX_RECENT_WINDOW_MS)
     .forEach((call) => {
-      const key = call.sector_operativo
+      const key = call.sector_operativo || call.sector
       countsBySector.set(key, (countsBySector.get(key) || 0) + 1)
     })
 

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { clientesService } from '../../api/incidencias/Clientes'
+import { incidenciasService } from '../../api/incidencias/incidencias'
 
 const getToday = () => {
   const d = new Date()
@@ -21,7 +21,7 @@ export const useIncidents = () => {
 
   const [mode, setMode] = useState('day')
   const [selectedDate, setSelectedDate] = useState(today)
-  const [selectedMonth, setSelectedMonth] = useState(currentMonth)
+  const [selectedMonth, setSelectedMonth] = useState(currentMonth) // Formato "YYYY-MM"
   const [range, setRange] = useState({ from: today, to: today })
 
   // 🔵 QUERY (lo que se ejecuta)
@@ -29,7 +29,7 @@ export const useIncidents = () => {
 
   const [searchTerm, setSearchTerm] = useState('')
 
-  // 🔥 botón CONSULTAR
+  // 🔥 Botón CONSULTAR
   const handleConsult = () => {
     setQuery({
       mode,
@@ -39,7 +39,7 @@ export const useIncidents = () => {
     })
   }
 
-  // 🔥 SOLO se ejecuta cuando haces click en consultar
+  // 🔥 Se ejecuta solo al hacer clic en Consultar
   useEffect(() => {
     if (!query) return
 
@@ -50,25 +50,31 @@ export const useIncidents = () => {
       try {
         let res
 
+        // 1. Filtrar por Día
         if (query.mode === 'day') {
-          res = await clientesService.getClientRecords({
-            fechaRegistro: query.selectedDate,
-            limit: 2000
-          })
+          res = await incidenciasService.getIncidenciasByDay(query.selectedDate)
         }
 
+        // 2. Filtrar por Mes
         if (query.mode === 'month') {
-          res = await clientesService.getClientByMonth(query.selectedMonth)
+          // Descomponemos "YYYY-MM" en anio (int) y mes (int) para la API
+          const [anioStr, mesStr] = query.selectedMonth.split('-')
+          const anio = parseInt(anioStr, 10)
+          const mes = parseInt(mesStr, 10)
+
+          res = await incidenciasService.getIncidenciasByMonth(anio, mes)
         }
 
+        // 3. Filtrar por Rango
         if (query.mode === 'range') {
-          res = await clientesService.getClientByRange(
+          res = await incidenciasService.getIncidenciasByRange(
             query.range.from,
             query.range.to
           )
         }
 
-        setRows(res.items || [])
+        // Tu backend responde con success_response: { data: [...], mensaje: "..." }
+        setRows(res.data || [])
       } catch (e) {
         setRows([])
         setError(e.message || 'Error cargando datos')
@@ -80,19 +86,25 @@ export const useIncidents = () => {
     load()
   }, [query])
 
-  // 🔎 filtro búsqueda (esto sí es en tiempo real)
+  // 🔎 Filtro de búsqueda local en tiempo real con validaciones seguras
   const filteredRows = useMemo(() => {
     const search = searchTerm.trim().toLowerCase()
+    if (!search) return rows
 
     return rows.filter((r) => {
-      if (!search) return true
+      // Usamos String(...) para evitar errores si algún campo devuelve números (ej. IDs en producto o dano)
+      const producto = String(r.producto || '').toLowerCase()
+      const servicio = String(r.servicio || '').toLowerCase()
+      const dano = String(r.dano || '').toLowerCase()
+      const sector = String(r.sector_operativo || r.sector || '').toLowerCase()
+      const personal = String(r.personal_diagnostico || '').toLowerCase()
 
       return (
-        r.cliente.toLowerCase().includes(search) ||
-        r.producto.toLowerCase().includes(search) ||
-        r.servicio.toLowerCase().includes(search) ||
-        r.direccion.toLowerCase().includes(search) ||
-        r.sector.toLowerCase().includes(search)
+        producto.includes(search) ||
+        servicio.includes(search) ||
+        dano.includes(search) ||
+        sector.includes(search) ||
+        personal.includes(search)
       )
     })
   }, [rows, searchTerm])

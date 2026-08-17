@@ -4,20 +4,20 @@ import { intensityConfig } from './mapUtils'
 import { cn } from '../../lib/Utils'
 
 export const MapDisplay = ({
-  zoom,
+  zoom = 12,
   selectedPoint,
-  activePoints,
+  activePoints = [],
   handlePointSelect,
-  metricLabelTitle,
-  sectorCount,
-  totalIncidents,
-  metricLabel,
+  metricLabelTitle = 'Incidencias',
+  sectorCount = 0,
+  totalIncidents = 0,
+  metricLabel = 'incidencias',
   sourceMode
 }) => {
   return (
     <div className="flex flex-col gap-3">
 
-      {/* 🔹 MAPA */}
+      {/*  MAPA CONTAINER */}
       <div className="relative min-h-[60vh] w-full overflow-hidden rounded-xl border border-border bg-slate-800">
         <MapContainer
           zoom={zoom}
@@ -28,26 +28,26 @@ export const MapDisplay = ({
         />
       </div>
 
-      {/* 🔹 LEYENDA / FOOTER (DEBAJO DEL MAPA) */}
-      <div className="flex items-center justify-between rounded-lg border border-border bg-card p-3 shadow-sm">
+      {/*  LEYENDA / FOOTER (DEBAJO DEL MAPA) */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-lg border border-border bg-card p-3 shadow-sm">
 
-        {/* Intensidad */}
-        <div className="flex items-center gap-6">
+        {/* Leyenda de Intensidades */}
+        <div className="flex flex-wrap items-center gap-4 sm:gap-6">
           <span className="text-sm font-medium text-muted-foreground">
             Intensidad:
           </span>
 
-          {Object.entries(intensityConfig).map(([key, config]) => (
+          {Object.entries(intensityConfig || {}).map(([key, config]) => (
             <div key={key} className="flex items-center gap-2">
-              <span className={cn('h-3 w-3 rounded-full', config.twColor)} />
+              <span className={cn('h-3 w-3 rounded-full', config?.twColor || 'bg-slate-500')} />
               <span className="text-sm text-muted-foreground">
-                {config.label}
+                {config?.label || key}
               </span>
             </div>
           ))}
         </div>
 
-        {/* Métricas */}
+        {/* Métricas e Info */}
         <div className="flex items-center gap-4 text-sm">
           <span className="text-muted-foreground">
             <span className="font-semibold text-foreground">
@@ -60,7 +60,7 @@ export const MapDisplay = ({
             <span className="font-semibold text-foreground">
               {totalIncidents}
             </span>{' '}
-            {metricLabel} ({sourceMode})
+            {metricLabel} {sourceMode ? `(${sourceMode})` : ''}
           </span>
         </div>
 
@@ -68,3 +68,5 @@ export const MapDisplay = ({
     </div>
   )
 }
+
+export default MapDisplay
