@@ -1,4 +1,5 @@
-FROM node:22-alpine
+#FROM node:22-alpine
+FROM node:22-slim
 
 WORKDIR /app
 
@@ -11,4 +12,5 @@ COPY . .
 
 EXPOSE 5173
 
-CMD ["pnpm", "run", "dev", "--", "--host"]
+#CMD ["pnpm", "run", "dev", "--", "--host"]
+CMD ["npx", "vite", "--host", "0.0.0.0"]
