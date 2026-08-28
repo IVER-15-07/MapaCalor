@@ -1,0 +1,17 @@
+stages:
+  - deploy_server_epps
+
+deploy_production_epps:
+  stage: deploy_server_epps
+  tags:
+    - Runner1
+  only:
+    - main
+
+  script:
+    - ssh-keyscan 192.168.203.62 >> ~/.ssh/known_hosts
+    - ls -la $CI_PROJECT_DIR
+    - sshpass -p "$SSH_PASSWORD_WORKERS" scp -o StrictHostKeyChecking=no -r $CI_PROJECT_DIR/* root@192.168.203.62:/home/sistemas/mapa-calor
+    - sshpass -p "$SSH_PASSWORD_WORKERS" ssh -o StrictHostKeyChecking=no root@192.168.203.62 "cd /home/sistemas/mapa-calor/backend && docker build -t odaza/mapacalor_backend ."
+    - sshpass -p "$SSH_PASSWORD_WORKERS" ssh -o StrictHostKeyChecking=no root@192.168.203.62 "cd /home/sistemas/mapa-calor/frontend && docker build  -t odaza/mapacalor_frontend ."
+    #- sshpass -p "$SSH_PASSWORD_WORKERS" ssh -o StrictHostKeyChecking=no root@192.168.203.66 "cd /root/webapp_produccion/ && docker stack rm hdacademy && docker stack deploy -c hdacademy.docker-compose.webapps.yml hdacademy"
