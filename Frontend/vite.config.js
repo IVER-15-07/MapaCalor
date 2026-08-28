@@ -12,7 +12,7 @@ export default defineConfig({
     host: '0.0.0.0', 
     port: 5173,
     // Autoriza explícitamente tu dominio corporativo para saltar el bloqueo de seguridad
-    allowedHosts: 'all',
+    allowedHosts: true,
     watch: {
       usePolling: true 
     }
