@@ -3,24 +3,30 @@ from datetime import datetime
 from typing import Optional
 
 class UserRegister(BaseModel):
-    nombre_usuario: str
-    email: EmailStr
+    nombre: str
+    usuario: str
+    correo: EmailStr
     password: str
 
 class UserOut(BaseModel):
     id: int
-    nombre_usuario: str
-    email: EmailStr
+    nombre: str
+    usuario: str
+    correo: EmailStr
     rol_id: int
     estado: str
     es_activo: bool
     fecha_creacion: Optional[datetime] = None
 
+    class Config:
+        from_attributes = True
+
 class UserApprove(BaseModel):
     super_admin_id: int
 
+# 👉 Ahora acepta 'usuario' directamente como texto libre (str)
 class UserLogin(BaseModel):
-    email: EmailStr
+    usuario: str
     password: str
 
 class TokenOut(BaseModel):

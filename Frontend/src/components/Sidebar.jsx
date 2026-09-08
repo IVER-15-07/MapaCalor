@@ -1,8 +1,20 @@
-
-import { NavLink } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import { useIsMobile } from '../hooks/movil'
-import { LayoutDashboard, AlertTriangle, Map, FileText, Users, Flame, X, User, Bell } from 'lucide-react'
+import { 
+  LayoutDashboard, 
+  AlertTriangle, 
+  Map, 
+  FileText, 
+  Users, 
+  Flame, 
+  X, 
+  User, 
+  Bell, 
+  UserCheck, 
+  LogOut 
+} from 'lucide-react'
 import { cn } from '../lib/Utils'
+import { getSession, clearSession } from '../utils/auth'
 
 const navItems = [
   { 
@@ -16,7 +28,6 @@ const navItems = [
   { 
     label: 'Gestión', 
     items: [
-     
       { name: 'Incidencias', href: '/incidencias', icon: AlertTriangle },
       { name: 'Clientes', href: '/clientes', icon: Users },
       { name: 'Reportes', href: '/reportes', icon: FileText },
@@ -26,6 +37,18 @@ const navItems = [
 
 const Sidebar = ({ isOpen = true, onClose }) => {
   const isMobile = useIsMobile()
+  const navigate = useNavigate()
+
+  // 1. Recuperamos el usuario activo desde el helper de autenticación
+  const { user } = getSession()
+
+  // Verificamos si es super_admin (rol_id = 1 en bi.roles_app)
+  const isSuperAdmin = user?.rol_id === 1 || user?.nombre_rol === 'super_admin'
+
+  const handleLogout = () => {
+    clearSession()
+    navigate('/login')
+  }
 
   return (
     <aside
@@ -36,6 +59,7 @@ const Sidebar = ({ isOpen = true, onClose }) => {
           : 'relative h-screen'
       )}
     >
+      {/* Header del Sidebar */}
       <div className="flex h-16 items-center justify-between gap-2 border-b border-sidebar-border px-6">
         <div className="flex items-center gap-2 flex-1">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
@@ -59,7 +83,7 @@ const Sidebar = ({ isOpen = true, onClose }) => {
         )}
       </div>
 
-      {/* Navigation - Menu items */}
+      {/* Navegación */}
       <nav className="flex-1 space-y-6 overflow-auto p-4">
         {navItems.map((section) => (
           <div key={section.label}>
@@ -89,18 +113,62 @@ const Sidebar = ({ isOpen = true, onClose }) => {
             </ul>
           </div>
         ))}
+
+        {/* 👑 Sección visible ÚNICAMENTE si es Super Admin */}
+        {isSuperAdmin && (
+          <div>
+            <p className="mb-2 px-3 text-xs font-medium uppercase tracking-wider text-amber-500">
+              Administración
+            </p>
+            <ul className="space-y-1">
+              <li>
+                <NavLink
+                  to="/usuarios-pendientes"
+                  onClick={() => isMobile && onClose?.()}
+                  className={({ isActive }) =>
+                    cn(
+                      'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
+                      isActive
+                        ? 'bg-sidebar-accent text-primary'
+                        : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+                    )
+                  }
+                >
+                  <UserCheck className="h-4 w-4 text-amber-500" />
+                  Aprobaciones
+                </NavLink>
+              </li>
+            </ul>
+          </div>
+        )}
       </nav>
 
+      {/* Footer: Perfil recuperado de PostgreSQL + Botón Logout */}
       <div className="border-t border-sidebar-border p-4">
         <div className="flex items-center gap-3 rounded-lg bg-sidebar-accent p-3">
-        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary flex-shrink-0">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary flex-shrink-0">
             <User className="h-4 w-4 text-primary-foreground" />
           </div>
-          <div className="flex-1">
-            <p className="text-xs font-medium text-sidebar-foreground">Operador</p>
-            <p className="text-xs text-muted-foreground">Conectado</p>
+          
+          <div className="flex-1 min-w-0">
+            {/* Nombre del usuario o fallback */}
+            <p className="text-xs font-semibold text-sidebar-foreground truncate">
+              {user?.nombre || user?.usuario || 'Usuario'}
+            </p>
+            {/* Rol de la base de datos */}
+            <p className="text-[11px] text-muted-foreground capitalize truncate">
+              {user?.rol_id === 1 ? 'Super Admin' : user?.rol_id === 2 ? 'Admin' : 'Operador'}
+            </p>
           </div>
-          <span className="h-2 w-2 rounded-full bg-success" />
+
+          {/* Botón Cerrar Sesión */}
+          <button
+            onClick={handleLogout}
+            title="Cerrar sesión"
+            className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-background/40 rounded-md transition-colors"
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
         </div>
       </div>
     </aside>
