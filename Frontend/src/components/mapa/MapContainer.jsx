@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react'
-import { MapContainer as LeafletMapContainer, TileLayer, CircleMarker, Popup, useMap } from 'react-leaflet'
+import { useEffect } from 'react'
+import { MapContainer as LeafletMapContainer, TileLayer, CircleMarker, Polygon, Popup, useMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import { COCHA_CENTER, intensityConfig } from './mapUtils'
 
@@ -7,14 +7,12 @@ import { COCHA_CENTER, intensityConfig } from './mapUtils'
 const MapController = ({ zoomLevel, centerCoords }) => {
   const map = useMap()
 
-  // Actualiza el nivel de zoom de forma segura
   useEffect(() => {
     if (zoomLevel) {
       map.setZoom(zoomLevel)
     }
   }, [zoomLevel, map])
 
-  // Centra y vuela hacia el punto seleccionado con validación de coordenadas
   useEffect(() => {
     if (centerCoords && typeof centerCoords.lat === 'number' && typeof centerCoords.lng === 'number') {
       map.flyTo([centerCoords.lat, centerCoords.lng], 14, { animate: true })
@@ -35,15 +33,36 @@ export const MapContainer = ({
     <LeafletMapContainer center={COCHA_CENTER} zoom={zoom} zoomControl={false} className="h-full w-full">
       <MapController zoomLevel={zoom} centerCoords={selectedPoint} />
 
+      {/* Capa libre de OpenStreetMap (100% gratuita, pública y sin API Key) */}
       <TileLayer
-        url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-        attribution='&copy; OpenStreetMap contributors'
-        opacity={0.88}
+        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
       />
 
-      {/* Renderizado seguro de los puntos en el mapa */}
+      {/* 🔴 CAPA 1: Polígono que marca toda el área de la zona */}
       {activePoints.map((point) => {
-        // Fallback seguro de configuración de intensidad si no existe
+        if (!point.polygon || point.polygon.length === 0) return null
+        const config = intensityConfig[point.intensity] || intensityConfig.low
+
+        return (
+          <Polygon
+            key={`poly-${point.id}`}
+            positions={point.polygon}
+            pathOptions={{
+              color: config.hex || '#3b82f6',
+              fillColor: config.hex || '#3b82f6',
+              fillOpacity: 0.25,
+              weight: 2,
+            }}
+            eventHandlers={{
+              click: () => handlePointSelect && handlePointSelect(point)
+            }}
+          />
+        )
+      })}
+
+      {/* 🔵 CAPA 2: Puntos de reporte / centroides */}
+      {activePoints.map((point) => {
         const config = intensityConfig[point.intensity] || intensityConfig.low
 
         return (
@@ -54,7 +73,7 @@ export const MapContainer = ({
             pathOptions={{
               color: config.hex || '#3b82f6',
               fillColor: config.hex || '#3b82f6',
-              fillOpacity: 0.45,
+              fillOpacity: 0.85,
               weight: 1.5,
               opacity: 0.85,
             }}
@@ -76,3 +95,5 @@ export const MapContainer = ({
     </LeafletMapContainer>
   )
 }
+
+export default MapContainer
