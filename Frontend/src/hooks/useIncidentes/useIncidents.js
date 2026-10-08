@@ -98,13 +98,15 @@ export const useIncidents = () => {
       const dano = String(r.dano || '').toLowerCase()
       const sector = String(r.sector_operativo || r.sector || '').toLowerCase()
       const personal = String(r.personal_diagnostico || '').toLowerCase()
+      const area = String(r.area || '').toLowerCase()
 
       return (
         producto.includes(search) ||
         servicio.includes(search) ||
         dano.includes(search) ||
         sector.includes(search) ||
-        personal.includes(search)
+        personal.includes(search) ||
+        area.includes(search)
       )
     })
   }, [rows, searchTerm])

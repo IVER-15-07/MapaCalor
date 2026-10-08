@@ -49,6 +49,7 @@ const Incidencias = () => {
               <th className="px-4 py-3 text-left text-xs font-medium uppercase text-muted-foreground">Producto</th>
               <th className="px-4 py-3 text-left text-xs font-medium uppercase text-muted-foreground">Servicio</th>
               <th className="px-4 py-3 text-left text-xs font-medium uppercase text-muted-foreground">Dirección</th>
+              <th className="px-4 py-3 text-left text-xs font-medium uppercase text-muted-foreground">Área</th>
               <th className="px-4 py-3 text-left text-xs font-medium uppercase text-muted-foreground">Daño</th>
               <th className="px-4 py-3 text-left text-xs font-medium uppercase text-muted-foreground">Sector</th>
               <th className="px-4 py-3 text-left text-xs font-medium uppercase text-muted-foreground">Fecha</th>
@@ -57,13 +58,13 @@ const Incidencias = () => {
           <tbody className="divide-y divide-border">
             {loading ? (
               <tr>
-                <td colSpan={7} className="px-4 py-10 text-center text-sm text-muted-foreground">
+                <td colSpan={8} className="px-4 py-10 text-center text-sm text-muted-foreground">
                   Cargando registros...
                 </td>
               </tr>
             ) : filteredRows.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-10 text-center text-sm text-muted-foreground">
+                <td colSpan={8} className="px-4 py-10 text-center text-sm text-muted-foreground">
                   No se encontraron registros para los filtros seleccionados.
                 </td>
               </tr>
@@ -93,6 +94,12 @@ const Incidencias = () => {
                       <MapPin className="h-3 w-3 shrink-0" />
                       {r.direccion || r.punto_venta || '-'}
                     </div>
+                  </td>
+
+                  <td className="px-4 py-4">
+                    <span className="text-sm text-muted-foreground">
+                      {r.area || '-'}
+                    </span>
                   </td>
 
                   <td className="px-4 py-4">

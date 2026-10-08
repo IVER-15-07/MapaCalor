@@ -12,6 +12,7 @@ class IncidentBase(BaseModel):
     punto_venta: Optional[Union[str, int]] = None
     actividad: Optional[Union[str, int]] = None
     personal_diagnostico: Optional[Union[str, int]] = None
+    area: Optional[Union[str, int]] = None
 
 
     

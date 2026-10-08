@@ -13,3 +13,4 @@ class Incidencia:
     punto_venta: Optional[str] = None
     actividad: Optional[str] = None
     personal_diagnostico: Optional[str] = None
+    area: Optional[str] = None
